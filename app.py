@@ -59,7 +59,7 @@ if not st.session_state.user:
     if st.button("Demo Login"):
         st.session_state.user = {"name":"HackathonUser","email":"demo@sih.com"}
         st.success("Logged in as Demo User ✅")
-        st.experimental_rerun()
+        st.rerun()
 
 else:
     # ---------------- Dashboard ----------------
