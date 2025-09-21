@@ -10,24 +10,19 @@ AVATARS = [
     "images/avatar2.png",
     "images/avatar3.png"
 ]
-COLLEGES_CSV = "jk_colleges.csv"
+COLLEGES_CSV = "jk_colleges_final.csv"  # CSV with College, Location, Course, Future_Scope, Study_Materials, Exam_Info
 USER_DATA_CSV = "users.csv"
 
 # -------------------------------
-# Streamlit CSS for pastel UI
+# Streamlit CSS for better UI
 st.markdown("""
 <style>
-/* General background */
-.main {
+body {
     background-color: #fef6f0;
     color: #333333;
+    font-family: 'Arial', sans-serif;
 }
-/* Sidebar */
-.css-1d391kg {
-    background-color: #f8eaf6;
-}
-/* Buttons */
-div.stButton > button {
+.stButton>button {
     background-color: #ffd6f0;
     color: #333;
     border-radius: 12px;
@@ -36,18 +31,16 @@ div.stButton > button {
     font-weight: bold;
     transition: transform 0.2s;
 }
-div.stButton > button:hover {
+.stButton>button:hover {
     transform: scale(1.05);
     box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
 }
-/* Cards */
 .card {
     background-color: #fff1f3;
     border-radius: 12px;
     padding: 15px;
     margin: 10px 0;
     box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
 }
 .card:hover {
     transform: scale(1.02);
@@ -70,7 +63,7 @@ def save_user_data(data):
         df = pd.read_csv(USER_DATA_CSV)
     except FileNotFoundError:
         df = pd.DataFrame(columns=data.keys())
-    df = df[df['email'] != data['email']]
+    df = df[df['email'] != data['email']]  # remove old record if exists
     df = pd.concat([df, pd.DataFrame([data])], ignore_index=True)
     df.to_csv(USER_DATA_CSV, index=False)
 
@@ -91,26 +84,26 @@ def get_user(email, password=None):
 # -------------------------------
 # Display compass animation
 def display_compass():
-    st.image(COMPASS_GIF_PATH, width=250, caption="Career Compass 🌟", use_column_width=False)
+    st.image(COMPASS_GIF_PATH, width=250, caption="Career Compass 🌟")
 
 # -------------------------------
-# Career roadmap (Plotly)
+# Career roadmap
 def display_roadmap(career):
     roadmap_data = {
         "Step": ["Step 1", "Step 2", "Step 3", "Step 4"],
         "Description": []
     }
-    if career in ["Doctor", "Engineer", "Scientist"]:
+    if career in ["Doctor","Engineer","Scientist"]:
         roadmap_data["Description"] = ["12th Science", "BSc/BTech/MBBS", "Internship/Research", "Specialization/Jobs"]
-    elif career in ["Accountant", "Business Analyst", "Economist"]:
+    elif career in ["Accountant","Business Analyst","Economist"]:
         roadmap_data["Description"] = ["12th Commerce", "BCom/BBA/Economics", "Internship/Entry Job", "Certifications/Higher Studies"]
-    elif career in ["Writer", "Designer", "Teacher"]:
+    elif career in ["Writer","Designer","Teacher"]:
         roadmap_data["Description"] = ["12th Arts/Science", "BA/BEd/Design", "Portfolio/Practice", "Jobs/Freelance/Masters"]
-    elif career in ["Chef", "Food Entrepreneur"]:
+    elif career in ["Chef","Food Entrepreneur"]:
         roadmap_data["Description"] = ["12th", "Culinary Diploma/BSc Food Tech", "Apprenticeship", "Own Business/Chef Jobs"]
-    elif career in ["Athlete", "Coach", "Physiotherapist"]:
+    elif career in ["Athlete","Coach","Physiotherapist"]:
         roadmap_data["Description"] = ["School Training", "Graduation/Diploma", "Competitions/Training", "Professional Career"]
-    elif career in ["Army Officer", "Navy Officer", "Airforce Officer"]:
+    elif career in ["Army Officer","Navy Officer","Airforce Officer"]:
         roadmap_data["Description"] = ["12th/Graduation", "Defence Academy", "Field Experience", "Promotion/Specialization"]
     else:
         roadmap_data["Description"] = ["Step 1", "Step 2", "Step 3", "Step 4"]
@@ -122,25 +115,39 @@ def display_roadmap(career):
     st.plotly_chart(fig, use_container_width=True)
 
 # -------------------------------
-# Session state
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-if 'user_email' not in st.session_state:
-    st.session_state['user_email'] = ""
-if 'quiz_index' not in st.session_state:
-    st.session_state['quiz_index'] = 0
-if 'quiz_results' not in st.session_state:
-    st.session_state['quiz_results'] = []
-if 'quiz_answers' not in st.session_state:
-    st.session_state['quiz_answers'] = []
+# Initialize session state
+if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
+if 'user_email' not in st.session_state: st.session_state['user_email'] = ""
+if 'quiz_results' not in st.session_state: st.session_state['quiz_results'] = []
+if 'quiz_index' not in st.session_state: st.session_state['quiz_index'] = 0
+if 'show_quiz' not in st.session_state: st.session_state['show_quiz'] = False
 
 # -------------------------------
 # Login / Signup
 if not st.session_state['logged_in']:
-    st.title("Career Compass ")
-    choice = st.radio("Choose", ["Login", "Sign Up"])
-    
-    if choice == "Login":
+    st.title("Career Compass Login / Signup")
+    choice = st.radio("Choose", ["Login","Sign Up"])
+    if choice=="Sign Up":
+        st.subheader("Create New Account")
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
+        if st.button("Sign Up"):
+            if email and password:
+                user_data = {
+                    "email": email,
+                    "password": password,
+                    "name": "",
+                    "age": 0,
+                    "gender": "",
+                    "location": "",
+                    "studying": "",
+                    "avatar": "",
+                    "your_paths": ""
+                }
+                save_user_data(user_data)
+                st.success("Account created! Please login.")
+    else:
+        st.subheader("Login")
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
         if st.button("Login"):
@@ -148,138 +155,76 @@ if not st.session_state['logged_in']:
             if user:
                 st.session_state['logged_in'] = True
                 st.session_state['user_email'] = email
-                st.experimental_rerun()
             else:
-                st.error("Invalid email or password")
-    
-    elif choice == "Sign Up":
-        st.subheader("Create a new account")
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
-        if email and password and st.button("Sign Up"):
-            data = {
-                "email": email,
-                "password": password,
-                "name": "",
-                "age": 0,
-                "gender": "",
-                "location": "",
-                "studying": "",
-                "avatar": AVATARS[0],
-                "your_paths": ""
-            }
-            save_user_data(data)
-            st.success("Account created! Please login.")
-            st.experimental_rerun()
+                st.error("Invalid email/password")
 
 # -------------------------------
-# Main app after login
+# Main App after login
 if st.session_state['logged_in']:
     user = get_user(st.session_state['user_email'])
-    
-    # Sidebar
     st.sidebar.title("Career Compass")
-    menu = st.sidebar.radio("Navigate", ["Home","Profile","Quiz","Your Paths","Career","Notifications","About Us"])
-    
-    # ----------- HOME -----------
+    menu = st.sidebar.radio("Navigate", ["Home","Profile","Your Paths","Career","Notifications","About Us"])
+
+    # -------------------------------
+    # Profile
+    if menu=="Profile":
+        st.title("Your Profile")
+        if not user['name']:
+            st.subheader("Complete Your Profile")
+            user['name'] = st.text_input("Full Name")
+            user['age'] = st.number_input("Age",10,100)
+            user['gender'] = st.selectbox("Gender",["Male","Female","Other"])
+            user['location'] = st.text_input("Location")
+            user['studying'] = st.selectbox("Currently Studying", ["Schooling","Intermediate","BTech/BSc","Other"])
+            st.subheader("Choose your avatar")
+            avatar_choice = st.radio("Avatar", AVATARS, format_func=lambda x: f"![avatar]({x})")
+            user['avatar'] = avatar_choice
+            if st.button("Save Profile"):
+                save_user_data(user)
+                st.success("Profile saved!")
+        else:
+            st.image(user['avatar'], width=150)
+            st.write(f"**Name:** {user['name']}")
+            st.write(f"**Email:** {user['email']}")
+            st.write(f"**Age:** {user['age']}")
+            st.write(f"**Gender:** {user['gender']}")
+            st.write(f"Location: {user['location']}")
+            st.write(f"Currently Studying: {user['studying']}")
+            if st.button("Logout"):
+                st.session_state['logged_in'] = False
+                st.session_state['user_email'] = ""
+
+    # -------------------------------
+    # Home
     if menu=="Home":
-        st.title(f"Welcome, {user['name'] if user['name'] else user['email']}!")
+        st.title("Welcome to Career Compass!")
         display_compass()
-        st.subheader("“Education is the key to unlocking your future.”")
         col1,col2 = st.columns(2)
         with col1:
             if st.button("Take Quiz"):
+                st.session_state['show_quiz'] = True
                 st.session_state['quiz_index'] = 0
-                st.session_state['quiz_answers'] = []
                 st.session_state['quiz_results'] = []
-                st.experimental_rerun()
         with col2:
-            if st.button("Explore Careers"):
-                st.session_state['explore'] = True
-                st.experimental_rerun()
-    
-    # ----------- PROFILE -----------
-    elif menu=="Profile":
-        st.title("Your Profile")
-        st.image(user['avatar'], width=150)
-        st.write(f"**Name:** {user['name']}")
-        st.write(f"**Email:** {user['email']}")
-        st.write(f"**Age:** {user['age']}")
-        st.write(f"**Gender:** {user['gender']}")
-        st.write(f"**Location:** {user['location']}")
-        st.write(f"Currently Studying: {user['studying']}")
-        if st.button("Logout"):
-            st.session_state['logged_in']=False
-            st.session_state['user_email']=""
-            st.experimental_rerun()
-    
-    # ----------- QUIZ -----------
-    elif menu=="Quiz" or ('quiz_index' in st.session_state and st.session_state['quiz_index']<3):
-        questions = [
-            {"q":"What subjects interest you the most?", "options":["Science","Commerce","Arts","Sports","Culinary","Business","Technology","Defense Services","Creative Arts"]},
-            {"q":"Do you prefer structured or creative work?", "options":["Structured","Creative","Both"]},
-            {"q":"Do you prefer working in a team or alone?", "options":["Teamwork","Solo","Both"]}
+            st.write("Explore careers, colleges, and more!")
+
+    # -------------------------------
+    # Quiz
+    if st.session_state['show_quiz']:
+        quiz_questions = [
+            {"q":"Which field interests you most?","options":["Science","Commerce","Arts","Sports","Culinary","Business","Technology","Defense","Creative Arts"],"type":"multiselect"},
+            {"q":"Structured or creative work?","options":["Structured","Creative","Both"],"type":"radio"},
+            {"q":"Teamwork or Solo?","options":["Teamwork","Solo","Both"],"type":"radio"}
         ]
         idx = st.session_state['quiz_index']
-        st.title("Career Path Quiz")
-        st.write(questions[idx]['q'])
-        answer = st.radio("Select one:", questions[idx]['options'])
+        question = quiz_questions[idx]
+        st.title("Career Quiz")
+        st.write(question["q"])
+        answer = st.multiselect("Choose:", question["options"]) if question["type"]=="multiselect" else st.radio("Choose:", question["options"])
         if st.button("Next"):
-            st.session_state['quiz_answers'].append(answer)
-            st.session_state['quiz_index'] += 1
-            st.experimental_rerun()
-        if st.session_state['quiz_index']>=len(questions):
-            # Generate career suggestions
-            results=[]
-            interests = st.session_state['quiz_answers'][0] if len(st.session_state['quiz_answers'])>0 else ""
-            if "Science" in interests: results+=["Doctor","Engineer","Scientist"]
-            if "Commerce" in interests: results+=["Accountant","Business Analyst","Economist"]
-            if "Arts" in interests: results+=["Writer","Designer","Teacher"]
-            if "Sports" in interests: results+=["Athlete","Coach","Physiotherapist"]
-            if "Culinary" in interests: results+=["Chef","Food Entrepreneur"]
-            if "Defense Services" in interests: results+=["Army Officer","Navy Officer","Airforce Officer"]
-            if "Creative Arts" in interests: results+=["Actor","Musician","Graphic Designer"]
-            st.session_state['quiz_results']=list(set(results))
-            # Save to user
-            paths=user.get('your_paths',"")
-            for c in st.session_state['quiz_results']:
-                if paths: paths+=f";{c}"
-                else: paths=c
-            user['your_paths']=paths
-            save_user_data(user)
-            st.success("Suggested careers saved to 'Your Paths'")
-            st.session_state['quiz_index']=0
-            st.session_state['quiz_answers']=[]
-    
-    # ----------- YOUR PATHS -----------
-    elif menu=="Your Paths":
-        st.title("Your Suggested Careers")
-        paths = user.get('your_paths',"").split(";")
-        if paths==[""] or not paths:
-            st.info("No paths suggested yet. Take the quiz first!")
-        else:
-            for c in paths:
-                st.subheader(c)
-                display_roadmap(c)
-    
-    # ----------- CAREER -----------
-    elif menu=="Career":
-        st.title("Career Exploration")
-        careers = ["Doctor","Engineer","Scientist","Accountant","Business Analyst","Economist","Writer","Designer","Teacher","Chef","Athlete","Defense Services"]
-        selected = st.selectbox("Choose a career to explore", careers)
-        st.write(f"**Career:** {selected}")
-        display_roadmap(selected)
-    
-    # ----------- NOTIFICATIONS -----------
-    elif menu=="Notifications":
-        st.title("Notifications")
-        if st.session_state['quiz_results']:
-            st.success(f"New careers suggested: {', '.join(st.session_state['quiz_results'])}")
-        else:
-            st.info("No new notifications yet.")
-    
-    # ----------- ABOUT US -----------
-    elif menu=="About Us":
-        st.title("About Career Compass")
-        st.write("Interactive app to guide students in choosing career paths, explore colleges, and plan roadmaps.")
-        st.image(COMPASS_GIF_PATH, width=300)
+            st.session_state['quiz_results'] += answer if isinstance(answer,list) else [answer]
+            if idx+1 < len(quiz_questions):
+                st.session_state['quiz_index'] +=1
+            else:
+                st.success(f"Quiz completed! Your selections: {st.session_state['quiz_results']}")
+                st.session_state['show_quiz'] = False
