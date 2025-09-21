@@ -149,7 +149,7 @@ def profile_page():
     st.header("👤 Edit Profile")
     user = st.session_state.user
     name = st.text_input("Full Name",user["name"])
-    age = st.number_input("Age",user["age"],min_value=10,max_value=100)
+    age = st.number_input("Age", int(user["age"]), min_value=10, max_value=100)
     gender = st.selectbox("Gender",["Male","Female","Other"],index=["Male","Female","Other"].index(user["gender"]))
     city = st.text_input("City",user["city"])
     state = st.text_input("State",user["state"])
