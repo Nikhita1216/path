@@ -84,7 +84,7 @@ def get_user(email, password=None):
 # -------------------------------
 # Display compass animation
 def display_compass():
-    st.image(COMPASS_GIF_PATH, width=250, caption="Career Compass 🌟")
+    st.image(COMPASS_GIF_PATH, width=100, caption="Career Compass 🌟")
 
 # -------------------------------
 # Career roadmap
@@ -125,7 +125,7 @@ if 'show_quiz' not in st.session_state: st.session_state['show_quiz'] = False
 # -------------------------------
 # Login / Signup
 if not st.session_state['logged_in']:
-    st.title("Career Compass Login / Signup")
+    st.title("Career Compass")
     choice = st.radio("Choose", ["Login","Sign Up"])
     if choice=="Sign Up":
         st.subheader("Create New Account")
@@ -163,7 +163,7 @@ if not st.session_state['logged_in']:
 if st.session_state['logged_in']:
     user = get_user(st.session_state['user_email'])
     st.sidebar.title("Career Compass")
-    menu = st.sidebar.radio("Navigate", ["Home","Profile","Your Paths","Career","Notifications","About Us"])
+    menu = st.sidebar.radio("career compass", ["Profile","Home","Your Paths","Explore","Notifications","About Us"])
 
     # -------------------------------
     # Profile
@@ -228,3 +228,64 @@ if st.session_state['logged_in']:
             else:
                 st.success(f"Quiz completed! Your selections: {st.session_state['quiz_results']}")
                 st.session_state['show_quiz'] = False
+                    # -------------------------------
+    # Career / Roadmaps
+    if menu=="Explore":
+        st.title("Explore careers")
+        careers = ["Doctor","Engineer","Scientist","Accountant","Business Analyst","Economist",
+                   "Writer","Designer","Teacher","Chef","Food Entrepreneur",
+                   "Athlete","Coach","Physiotherapist","Army Officer","Navy Officer","Airforce Officer"]
+        career_choice = st.selectbox("Select a career to view roadmap", careers)
+        if career_choice:
+            display_roadmap(career_choice)
+
+    # -------------------------------
+    # Your Paths / Colleges
+    if menu=="Your Paths":
+        st.title("J&K Government Colleges")
+        colleges_df = load_colleges()
+        filter_course = st.selectbox("Filter by course", ["All"] + sorted(colleges_df['Course'].unique()))
+        if filter_course != "All":
+            colleges_df = colleges_df[colleges_df['Course'] == filter_course]
+
+        for _, row in colleges_df.iterrows():
+            st.markdown(f"""
+            <div class="card">
+            **College:** {row['College']}  \n
+            **Location:** {row['Location']}  \n
+            **Course:** {row['Course']}  \n
+            **Future Scope:** {row['Future_Scope']}  \n
+            **Study Materials:** {row['Study_Materials']}  \n
+            **Exam Info:** {row['Exam_Info']}
+            </div>
+            """, unsafe_allow_html=True)
+
+    # -------------------------------
+    # Notifications
+    if menu=="Notifications":
+        st.title("Notifications")
+        notifications = [
+            "New careers added in roadmap section!",
+            "Colleges data refreshed with latest courses."
+        ]
+        for note in notifications:
+            st.info(note)
+
+    # -------------------------------
+    # About Us
+    if menu=="About Us":
+        st.title("About Career Compass 🌟")
+        st.markdown("""
+        Career Compass is your personal guide to discovering career paths, exploring colleges,
+        and planning your roadmap to success. 🎯  
+
+        Features:
+        - Personalized Career Quiz
+        - J&K Government Colleges info
+        - Career Roadmaps for multiple fields
+        - Notifications & updates
+        - Profile customization with avatars
+        - Fun pastel UI
+        """)
+        st.image(COMPASS_GIF_PATH, width=200)
+
