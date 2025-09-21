@@ -147,9 +147,9 @@ def profile_setup_page():
     if gender == "Female":
         chosen_avatar = "images/avatar1.png"
     elif gender == "Male":
-        chosen_avatar = "images/avatar3.png"
-    else:
         chosen_avatar = "images/avatar2.png"
+    else:
+        chosen_avatar = "images/avatar3.png"
 
     if st.button("Finish Setup"):
         user_df = load_users()
