@@ -24,7 +24,7 @@ def save_users(df):
 
 def load_colleges():
     if os.path.exists(COLLEGES_CSV):
-        return pd.read_csv(COLLEGES_CSV)
+        return pd.read_csv(COLLEGES_CSV, quotechar='"')  # safe loading
     return pd.DataFrame(columns=["College","Website","Courses"])
 
 # -----------------------------
@@ -41,6 +41,15 @@ QUIZ_QUESTIONS = [
      "options":["Space","Electronics","Biology","History"],
      "career_map":{"Space":"Astronomer","Electronics":"ECE Engineer","Biology":"Doctor","History":"Civil Services"}}
 ]
+
+CAREER_DESCRIPTIONS = {
+    "Engineer": "Design and build technology solutions in software, electronics, or mechanical domains.",
+    "Teacher": "Educate and guide students in schools, colleges, or specialized fields.",
+    "Scientist": "Conduct research and experiments to advance knowledge in various sciences.",
+    "Astronomer": "Study celestial objects, space phenomena, and work in research institutes like ISRO.",
+    "Doctor": "Diagnose and treat illnesses, perform medical procedures, and specialize in healthcare.",
+    "Civil Services": "Work in administrative roles, policy-making, and public service through UPSC exams."
+}
 
 CAREER_ROADMAPS = {
     "Engineer":["Choose branch","B.Tech","Projects+Internships","Placements/GATE"],
@@ -155,12 +164,7 @@ def profile_page():
     except:
         default_age = 18
     age = st.number_input("Age", value=default_age, min_value=10, max_value=100)
-
-    gender = st.selectbox(
-        "Gender", 
-        ["Male", "Female", "Other"], 
-        index=["Male","Female","Other"].index(user.get("gender","Other"))
-    )
+    gender = st.selectbox("Gender", ["Male", "Female", "Other"], index=["Male","Female","Other"].index(user.get("gender","Other")))
     city = st.text_input("City", user.get("city",""))
     state = st.text_input("State", user.get("state",""))
     education = st.text_input("Education", user.get("education",""))
@@ -192,8 +196,7 @@ def home_page_content():
 def quiz_page():
     st.header("🎯 Career Quiz")
     if st.button("Retake Quiz"):
-        st.session_state.quiz_answers = []
-
+        st.session_state.quiz_answers=[]
     q_num = len(st.session_state.quiz_answers)
     if q_num < len(QUIZ_QUESTIONS):
         q = QUIZ_QUESTIONS[q_num]
@@ -204,20 +207,19 @@ def quiz_page():
     else:
         st.success("✅ Quiz Completed!")
         suggested=[]
-        for i, ans in enumerate(st.session_state.quiz_answers):
+        for i,ans in enumerate(st.session_state.quiz_answers):
             role = QUIZ_QUESTIONS[i]["career_map"].get(ans)
             if role:
                 suggested.append(role)
-
-        # Display suggested careers with roadmap below quiz
-        st.subheader("Your suggested careers & roadmaps:")
+        st.subheader("Your suggested careers:")
         for role in set(suggested):
-            st.write(f"### {role}")
+            st.write(f"- {role}")
+            if role in CAREER_DESCRIPTIONS:
+                st.write(f"Description: {CAREER_DESCRIPTIONS[role]}")
             if role in CAREER_ROADMAPS:
                 st.write("Roadmap:")
                 for step in CAREER_ROADMAPS[role]:
-                    st.write(f"- {step}")
-        st.info("You can also explore these careers in the 'Explore' tab for colleges offering them.")
+                    st.write(f"• {step}")
 
 # -----------------------------
 # CAREERS PAGE
@@ -243,22 +245,22 @@ def career_page():
 # EXPLORE PAGE
 # -----------------------------
 def explore_page():
-    st.header("🔎 Explore Careers")
+    st.header("🔎 Explore Careers/Courses")
     career = st.text_input("Enter career/course to explore")
     if career:
         st.subheader(career)
-        # Career roadmap
+        if career in CAREER_DESCRIPTIONS:
+            st.write(f"Description: {CAREER_DESCRIPTIONS[career]}")
         if career in CAREER_ROADMAPS:
             st.write("Roadmap:")
             for step in CAREER_ROADMAPS[career]:
                 st.write(f"- {step}")
-        # Colleges offering this career/course
         df = load_colleges()
         if not df.empty:
-            df_filtered = df[df["Courses"].str.contains(career, case=False, na=False)]
+            df_filtered = df[df["Courses"].str.contains(career,case=False,na=False)]
             if not df_filtered.empty:
-                st.write("Colleges offering this career/course:")
-                for idx, row in df_filtered.iterrows():
+                st.write("Colleges offering this course/career:")
+                for idx,row in df_filtered.iterrows():
                     st.write(f"- {row['College']} ({row['Website']})")
 
 # -----------------------------
@@ -270,24 +272,27 @@ def college_page():
     if df.empty:
         st.error("No college data found!")
         return
-
-    search_by = st.radio("Search by:", ["Course", "College"])
-    if search_by == "Course":
+    search_by = st.radio("Search by:",["Course","College"])
+    if search_by=="Course":
         course = st.text_input("Enter course")
         if course:
-            filtered = df[df["Courses"].str.contains(course, case=False, na=False)]
+            filtered = df[df["Courses"].str.contains(course,case=False,na=False)]
             if not filtered.empty:
-                st.subheader(f"Colleges offering {course}:")
-                for idx, row in filtered.iterrows():
+                st.write(f"Colleges offering '{course}':")
+                for idx,row in filtered.iterrows():
                     st.write(f"- {row['College']} ({row['Website']})")
+            else:
+                st.warning("No colleges found for this course.")
     else:
         college = st.text_input("Enter college")
         if college:
-            filtered = df[df["College"].str.contains(college, case=False, na=False)]
+            filtered = df[df["College"].str.contains(college,case=False,na=False)]
             if not filtered.empty:
-                st.subheader(f"College: {filtered.iloc[0]['College']}")
+                st.write(f"College: {filtered.iloc[0]['College']}")
                 st.write(f"Website: {filtered.iloc[0]['Website']}")
                 st.write(f"Courses: {filtered.iloc[0]['Courses']}")
+            else:
+                st.warning("No college found with this name.")
 
 # -----------------------------
 # ABOUT
@@ -301,6 +306,17 @@ def about_page():
     st.write("Phone: +91-9876543210")
 
 # -----------------------------
+# CSV DATASET INSTRUCTIONS
+# -----------------------------
+st.sidebar.markdown("""
+**📄 College Dataset Instructions**
+- Include columns: `College`, `Website`, `Courses`
+- For multiple courses, wrap in quotes: `"B.Tech CSE, B.Tech ECE, B.Tech ME"`
+- Example row:
+`NIT Srinagar,https://nitj.ac.in,"B.Tech CSE, B.Tech ECE, B.Tech ME"`
+""")
+
+# -----------------------------
 # MAIN ROUTER
 # -----------------------------
 if st.session_state.page=="login":
@@ -308,7 +324,7 @@ if st.session_state.page=="login":
 elif st.session_state.page=="profile_setup":
     profile_setup_page()
 else:
-    sidebar()  # persistent
+    sidebar()  # persistent sidebar
     if st.session_state.page=="home":
         home_page_content()
     elif st.session_state.page=="quiz":
