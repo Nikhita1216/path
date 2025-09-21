@@ -135,40 +135,41 @@ def login_page():
 # -------------------------------------------------
 def profile_setup_page():
     st.title("👤 Set up your profile")
+    
     name = st.text_input("Full Name")
     age = st.number_input("Age", min_value=10, max_value=100)
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
     city = st.text_input("City")
     state = st.text_input("State")
     education = st.text_input("Education Qualification")
-
-   
+    
+    # Map gender to actual avatar files
+    if gender == "Female":
+        chosen_avatar = "images/avatar1.png"
+    elif gender == "Male":
+        chosen_avatar = "images/avatar3.png"
+    else:
+        chosen_avatar = "images/avatar2.png"
 
     if st.button("Finish Setup"):
-         # Avatar selection based on gender
-    # In profile setup
-        if gender == "Female":
-           chosen_avatar = "images/avatar1.png"
-        elif gender == "Male":
-           chosen_avatar = "images/avatar3.png"
-        else:
-           chosen_avatar = "images/avatar2.png"
-
-    avatar_path = st.session_state.user.get("avatar")
-    if avatar_path and os.path.exists(avatar_path):
-       st.sidebar.image(avatar_path, width=80)
-    else:
-       st.sidebar.image("images/avatar2.png", width=80)  # default fallback
-
         user_df = load_users()
-        new_user = {"email": st.session_state.temp_signup["email"], "password": st.session_state.temp_signup["password"],
-                    "name": name, "age": age, "gender": gender, "city": city, "state": state,
-                    "education": education, "avatar": os.path.join(AVATAR_FOLDER, chosen_avatar)}
+        new_user = {
+            "email": st.session_state.temp_signup["email"],
+            "password": st.session_state.temp_signup["password"],
+            "name": name,
+            "age": age,
+            "gender": gender,
+            "city": city,
+            "state": state,
+            "education": education,
+            "avatar": chosen_avatar
+        }
         user_df = pd.concat([user_df, pd.DataFrame([new_user])], ignore_index=True)
         save_users(user_df)
         st.session_state.user = new_user
         st.session_state.page = "home"
         st.success("Profile created ✅")
+
 
 # -------------------------------------------------
 # HOME PAGE
@@ -182,9 +183,17 @@ def home_page():
 # SIDEBAR
 # -------------------------------------------------
 def sidebar():
-    st.sidebar.image(st.session_state.user["avatar"], width=80)
-    st.sidebar.title(f"{st.session_state.user['name']}")
-    choice = st.sidebar.radio("📍 Navigate", ["Home", "Quiz", "Explore", "Careers", "Colleges", "Profile", "About Us", "Logout"])
+    st.sidebar.title(f"Welcome, {st.session_state.user['name']}")
+    
+    avatar_path = st.session_state.user.get("avatar")
+    if avatar_path and os.path.exists(avatar_path):
+        st.sidebar.image(avatar_path, width=80)
+    else:
+        st.sidebar.image("images/avatar2.png", width=80)  # fallback avatar
+
+    choice = st.sidebar.radio("📍 Navigate", ["Home", "Quiz", "Careers", "Colleges", "Explore", "Profile", "About Us", "Logout"])
+    
+    # Set page state based on choice
     if choice == "Home":
         st.session_state.page = "home"
     elif choice == "Quiz":
@@ -202,6 +211,7 @@ def sidebar():
     elif choice == "Logout":
         st.session_state.page = "login"
         st.session_state.user = None
+
 
 # -------------------------------------------------
 # QUIZ PAGE
