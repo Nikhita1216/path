@@ -148,19 +148,37 @@ def profile_setup_page():
 def profile_page():
     st.header("👤 Edit Profile")
     user = st.session_state.user
-    name = st.text_input("Full Name",user["name"])
-    age = st.number_input("Age", int(user["age"]), min_value=10, max_value=100)
-    gender = st.selectbox("Gender",["Male","Female","Other"],index=["Male","Female","Other"].index(user["gender"]))
-    city = st.text_input("City",user["city"])
-    state = st.text_input("State",user["state"])
-    education = st.text_input("Education",user["education"])
+
+    name = st.text_input("Full Name", user.get("name", ""))
+
+    # safe conversion for age
+    try:
+        default_age = int(user.get("age", 18))
+    except:
+        default_age = 18
+    age = st.number_input("Age", value=default_age, min_value=10, max_value=100)
+
+    gender = st.selectbox(
+        "Gender", 
+        ["Male", "Female", "Other"], 
+        index=["Male","Female","Other"].index(user.get("gender","Other"))
+    )
+    city = st.text_input("City", user.get("city",""))
+    state = st.text_input("State", user.get("state",""))
+    education = st.text_input("Education", user.get("education",""))
+
     if st.button("Save"):
         avatar_map = {"Male":"avatar3.png","Female":"avatar1.png","Other":"avatar2.png"}
-        avatar_file = os.path.join(AVATAR_FOLDER,avatar_map[gender])
+        avatar_file = os.path.join(AVATAR_FOLDER, avatar_map[gender])
         users = load_users()
-        users.loc[users["email"]==user["email"],["name","age","gender","city","state","education","avatar"]] = [name,age,gender,city,state,education,avatar_file]
+        users.loc[users["email"]==user["email"], ["name","age","gender","city","state","education","avatar"]] = [
+            name, age, gender, city, state, education, avatar_file
+        ]
         save_users(users)
-        st.session_state.user.update({"name":name,"age":age,"gender":gender,"city":city,"state":state,"education":education,"avatar":avatar_file})
+        st.session_state.user.update({
+            "name": name, "age": age, "gender": gender, "city": city, "state": state,
+            "education": education, "avatar": avatar_file
+        })
         st.success("Profile updated ✅")
 
 # -----------------------------
