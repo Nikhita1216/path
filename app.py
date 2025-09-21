@@ -8,7 +8,7 @@ import os
 st.set_page_config(page_title="Career Compass", layout="wide")
 
 USERS_CSV = "users.csv"
-COLLEGES_CSV = "/mnt/data/jk_colleges.csv"
+COLLEGES_CSV = "jk_colleges.csv"
 AVATAR_FOLDER = "images"
 
 # -----------------------------
