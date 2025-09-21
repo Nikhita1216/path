@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import os
 
 # -------------------------------
 # Paths
@@ -15,49 +14,46 @@ COLLEGES_CSV = "jk_colleges.csv"
 USER_DATA_CSV = "users.csv"
 
 # -------------------------------
-# Streamlit CSS for pastel UI, cards, buttons
-st.markdown(
-    """
-    <style>
-    .main {background-color: #fef6f0; color: #333333;}
-    .css-1d391kg {background-color: #f8eaf6;}
-    div.stButton > button {
-        background-color: #ffd6f0; color: #333; border-radius: 12px;
-        padding: 8px 20px; font-size: 16px; font-weight: bold; transition: transform 0.2s;
-    }
-    div.stButton > button:hover {transform: scale(1.05); box-shadow: 0px 4px 8px rgba(0,0,0,0.2);}
-    .card {
-        background-color: #fff1f3; border-radius: 12px; padding: 15px; margin: 10px 0;
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.1); transition: transform 0.2s;
-    }
-    .card:hover {transform: scale(1.02); box-shadow: 0px 4px 10px rgba(0,0,0,0.15);}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# CSS for pastel UI
+st.markdown("""
+<style>
+.main {background-color: #fef6f0; color: #333333;}
+.css-1d391kg {background-color: #f8eaf6;}
+div.stButton > button {background-color: #ffd6f0; color: #333; border-radius: 12px; padding: 8px 20px; font-size:16px; font-weight:bold; transition: transform 0.2s;}
+div.stButton > button:hover {transform: scale(1.05); box-shadow: 0px 4px 8px rgba(0,0,0,0.2);}
+.card {background-color:#fff1f3; border-radius:12px; padding:15px; margin:10px 0; box-shadow:0px 2px 6px rgba(0,0,0,0.1); transition: transform 0.2s;}
+.card:hover {transform: scale(1.02); box-shadow:0px 4px 10px rgba(0,0,0,0.15);}
+</style>
+""", unsafe_allow_html=True)
 
 # -------------------------------
 # Load colleges
 @st.cache_data
 def load_colleges():
-    if os.path.exists(COLLEGES_CSV):
-        df = pd.read_csv(COLLEGES_CSV)
-        return df
-    return pd.DataFrame(columns=["College","Location","Course","Future_Scope","Study_Materials","Exam_Info"])
+    df = pd.read_csv(COLLEGES_CSV)
+    # Ensure required columns exist for app
+    if not {"College","Location","Course","Future_Scope","Study_Materials","Exam_Info"}.issubset(df.columns):
+        # Create dummy columns if missing
+        for col in ["College","Location","Course","Future_Scope","Study_Materials","Exam_Info"]:
+            if col not in df.columns:
+                df[col] = ""
+    return df
 
 # -------------------------------
-# User data management
+# User data functions
 def save_user_data(data):
-    if os.path.exists(USER_DATA_CSV):
+    try:
         df = pd.read_csv(USER_DATA_CSV)
-        df = df[df['email'] != data['email']]
-        df = pd.concat([df, pd.DataFrame([data])], ignore_index=True)
-    else:
-        df = pd.DataFrame([data])
+    except FileNotFoundError:
+        df = pd.DataFrame(columns=data.keys())
+    # Remove old entry with same email
+    df = df[df['email'] != data['email']]
+    # Use pd.concat instead of deprecated append
+    df = pd.concat([df, pd.DataFrame([data])], ignore_index=True)
     df.to_csv(USER_DATA_CSV, index=False)
 
 def get_user(email, password=None):
-    if os.path.exists(USER_DATA_CSV):
+    try:
         df = pd.read_csv(USER_DATA_CSV)
         if password:
             user = df[(df['email'] == email) & (df['password'] == password)]
@@ -65,21 +61,20 @@ def get_user(email, password=None):
             user = df[df['email'] == email]
         if not user.empty:
             return user.iloc[0].to_dict()
-    return None
+        else:
+            return None
+    except FileNotFoundError:
+        return None
 
 # -------------------------------
-# Display compass
+# Compass animation
 def display_compass():
-    if os.path.exists(COMPASS_GIF_PATH):
-        st.image(COMPASS_GIF_PATH, width=250, caption="Career Compass 🌟", use_column_width=False)
+    st.image(COMPASS_GIF_PATH, width=250, caption="Career Compass 🌟", use_column_width=False)
 
 # -------------------------------
 # Career roadmap
 def display_roadmap(career):
-    roadmap_data = {
-        "Step": ["Step 1", "Step 2", "Step 3", "Step 4"],
-        "Description": []
-    }
+    roadmap_data = {"Step":["Step 1","Step 2","Step 3","Step 4"], "Description":[]}
     if career in ["Doctor","Engineer","Scientist"]:
         roadmap_data["Description"] = ["12th Science","BSc/BTech/MBBS","Internship/Research","Specialization/Jobs"]
     elif career in ["Accountant","Business Analyst","Economist"]:
@@ -102,58 +97,65 @@ def display_roadmap(career):
     st.plotly_chart(fig, use_container_width=True)
 
 # -------------------------------
-# Initialize session state
-if 'logged_in' not in st.session_state: st.session_state['logged_in']=False
-if 'user_email' not in st.session_state: st.session_state['user_email']=""
-if 'quiz_results' not in st.session_state: st.session_state['quiz_results']=[]
+# Session state initialization
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_email' not in st.session_state:
+    st.session_state.user_email = ""
+if 'quiz_results' not in st.session_state:
+    st.session_state.quiz_results = []
+if 'show_quiz' not in st.session_state:
+    st.session_state.show_quiz = False
 
 # -------------------------------
-# Sidebar
-if st.session_state['logged_in']:
-    st.sidebar.title("Career Compass")
-    menu = st.sidebar.radio("Navigate", ["Home","Profile","Your Paths","Career","Notifications","About Us"])
-else:
-    menu = None
-
-# -------------------------------
-# LOGIN / SIGNUP
-if not st.session_state['logged_in']:
+# MAIN APP
+if not st.session_state.logged_in:
     st.title("Career Compass Login / Signup")
-    choice = st.radio("Choose", ["Login","Sign Up"])
-    
-    if choice=="Sign Up":
-        st.subheader("Create a new account")
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
-        if st.button("Sign Up"):
-            if email and password:
-                data = {"name":"New User","email":email,"password":password,"age":0,"gender":"Other","location":"","studying":"Schooling","avatar":AVATARS[0],"your_paths":""}
-                save_user_data(data)
-                st.success("Account created! You are now logged in.")
-                st.session_state['logged_in']=True
-                st.session_state['user_email']=email
-                st.experimental_rerun()
-            else:
-                st.warning("Please enter email and password.")
+    choice = st.radio("Choose", ["Login","Sign Up"], horizontal=True)
 
     if choice=="Login":
-        st.subheader("Login")
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
         if st.button("Login"):
-            user = get_user(email,password)
+            user = get_user(email, password)
             if user:
-                st.session_state['logged_in']=True
-                st.session_state['user_email']=email
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
                 st.success(f"Welcome {user['name']}!")
-                st.experimental_rerun()
             else:
                 st.error("Invalid email or password")
 
+    elif choice=="Sign Up":
+        st.subheader("Create a new account")
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
+        if st.button("Next"):
+            st.session_state.temp_signup = {"email":email,"password":password}
+            st.session_state.signup_step = 1
+
+        if st.session_state.get("signup_step",0)==1:
+            name = st.text_input("Full Name")
+            age = st.number_input("Age", 10, 100)
+            gender = st.selectbox("Gender", ["Male","Female","Other"])
+            location = st.text_input("Location")
+            studying = st.selectbox("Currently studying", ["Schooling","Intermediate/Diploma","BTech/BSc","Other"])
+            avatar = st.selectbox("Choose your avatar", AVATARS)
+            if st.button("Create Account"):
+                data = {"email":st.session_state.temp_signup["email"],
+                        "password":st.session_state.temp_signup["password"],
+                        "name":name, "age":age, "gender":gender,
+                        "location":location, "studying":studying,
+                        "avatar":avatar, "your_paths":""}
+                save_user_data(data)
+                st.session_state.logged_in = True
+                st.session_state.user_email = data["email"]
+                st.success("Account created! Welcome!")
+
 # -------------------------------
 # AFTER LOGIN
-if st.session_state['logged_in']:
-    user = get_user(st.session_state['user_email'])
+if st.session_state.logged_in:
+    user = get_user(st.session_state.user_email)
+    menu = st.sidebar.radio("Navigate", ["Home","Profile","Your Paths","Career","Notifications","About Us"])
 
     # PROFILE
     if menu=="Profile":
@@ -163,12 +165,13 @@ if st.session_state['logged_in']:
         st.write(f"**Email:** {user['email']}")
         st.write(f"**Age:** {user['age']}")
         st.write(f"**Gender:** {user['gender']}")
-        st.write(f"Location: {user['location']}")
+        st.write(f"**Location:** {user['location']}")
         st.write(f"Currently Studying: {user['studying']}")
         if st.button("Logout"):
-            st.session_state['logged_in']=False
-            st.session_state['user_email']=""
-            st.experimental_rerun()
+            st.session_state.logged_in=False
+            st.session_state.user_email=""
+            st.session_state.show_quiz=False
+            st.success("Logged out!")
 
     # HOME
     elif menu=="Home":
@@ -178,88 +181,66 @@ if st.session_state['logged_in']:
         col1,col2=st.columns(2)
         with col1:
             if st.button("Take Quiz"):
-                st.session_state['quiz']=True
+                st.session_state.show_quiz=True
         with col2:
-            if st.button("Explore Careers"):
-                st.session_state['explore']=True
+            st.info("Explore Careers in the 'Career' tab.")
 
     # QUIZ
-    if 'quiz' in st.session_state and st.session_state['quiz']:
+    if st.session_state.show_quiz:
         st.title("Career Path Quiz")
-        st.write("Answer questions to discover your optimal career paths!")
-        interests = st.multiselect("Select your interests", ["Science","Commerce","Arts","Sports","Culinary","Business","Technology","Defense Services","Creative Arts"])
-        personality = st.radio("Do you prefer structured or creative work?", ["Structured","Creative","Both"])
-        work_style = st.radio("Teamwork or Solo work?", ["Teamwork","Solo","Both"])
-        if st.button("Get Suggested Careers"):
-            results=[]
-            if "Science" in interests: results+=["Doctor","Engineer","Scientist"]
-            if "Commerce" in interests: results+=["Accountant","Business Analyst","Economist"]
-            if "Arts" in interests: results+=["Writer","Designer","Teacher"]
-            if "Sports" in interests: results+=["Athlete","Coach","Physiotherapist"]
-            if "Culinary" in interests: results+=["Chef","Food Entrepreneur"]
-            if "Defense Services" in interests: results+=["Army Officer","Navy Officer","Airforce Officer"]
-            if "Creative Arts" in interests: results+=["Actor","Musician","Graphic Designer"]
-            st.session_state['quiz_results']=list(set(results))
-            paths=user.get('your_paths',"")
-            for c in st.session_state['quiz_results']:
-                if paths: paths+=f";{c}"
-                else: paths=c
-            user['your_paths']=paths
-            save_user_data(user)
-            st.success("Suggested careers saved to 'Your Paths'")
-            st.session_state['quiz']=False
-            st.experimental_rerun()
+        st.write("Answer questions to discover your optimal career paths.")
+        q1 = st.selectbox("Do you enjoy Science?", ["Yes","No"])
+        q2 = st.selectbox("Do you enjoy Math?", ["Yes","No"])
+        q3 = st.selectbox("Do you enjoy Arts?", ["Yes","No"])
+        q4 = st.selectbox("Do you enjoy helping people?", ["Yes","No"])
+        if st.button("Submit Quiz"):
+            score = 0
+            if q1=="Yes" and q2=="Yes":
+                score += 2
+            if q3=="Yes":
+                score += 1
+            if q4=="Yes":
+                score += 2
+            if score>=4:
+                st.success("Suggested Career: Engineer / Scientist / Doctor")
+                display_roadmap("Engineer")
+            elif score==3:
+                st.success("Suggested Career: Teacher / Designer / Writer")
+                display_roadmap("Teacher")
+            else:
+                st.success("Suggested Career: Business / Entrepreneurship")
+                display_roadmap("Business")
+            st.session_state.show_quiz=False
 
-    # YOUR PATHS
-    elif menu=="Your Paths":
-        st.title("Your Saved Career Paths")
-        paths=user.get('your_paths',"")
-        if paths:
-            paths_list=paths.split(";")
-            df=load_colleges()
-            for career in paths_list:
-                st.markdown(f'<div class="card"><h4>{career}</h4></div>', unsafe_allow_html=True)
-                display_roadmap(career)
-                filtered=df[df['Course'].str.contains(career.split()[0],case=False,na=False)]
-                for idx,row in filtered.iterrows():
-                    st.markdown(f"""
-                        <div class="card">
-                            <h5>{row['College']} ({row['Location']})</h5>
-                            <p><b>Future Scope:</b> {row['Future_Scope']}</p>
-                            <p><b>Study Material:</b> <a href="{row['Study_Materials']}" target="_blank">Link</a></p>
-                            <p><b>Exam Info:</b> {row['Exam_Info']}</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-        else:
-            st.info("No career paths saved yet. Take the quiz!")
-
-    # CAREER EXPLORER
+    # CAREER PATHS
     elif menu=="Career":
-        st.title("Explore Careers & Colleges")
-        df=load_colleges()
-        course_filter = st.selectbox("Select Course/Career", df['Course'].unique())
-        filtered=df[df['Course'].str.contains(course_filter,case=False,na=False)]
-        for idx,row in filtered.iterrows():
+        st.title("Career Paths Explorer")
+        careers = ["Doctor","Engineer","Scientist","Accountant","Business Analyst",
+                   "Writer","Designer","Teacher","Chef","Food Entrepreneur",
+                   "Athlete","Coach","Physiotherapist","Army Officer","Navy Officer","Airforce Officer"]
+        selected = st.selectbox("Select Career", careers)
+        display_roadmap(selected)
+
+    # YOUR PATHS (saved J&K colleges)
+    elif menu=="Your Paths":
+        st.title("Explore Government Colleges in J&K")
+        df = load_colleges()
+        search = st.text_input("Search by college or course")
+        if search:
+            df = df[df.apply(lambda x: search.lower() in x["College"].lower() or search.lower() in x["Course"].lower(), axis=1)]
+        for _, row in df.iterrows():
             st.markdown(f"""
-                <div class="card">
-                    <h5>{row['College']} ({row['Location']})</h5>
-                    <p><b>Future Scope:</b> {row['Future_Scope']}</p>
-                    <p><b>Study Material:</b> <a href="{row['Study_Materials']}" target="_blank">Link</a></p>
-                    <p><b>Exam Info:</b> {row['Exam_Info']}</p>
-                </div>
+            <div class="card">
+            <b>{row['College']}</b> - {row['Location']}<br>
+            <b>Course:</b> {row['Course']}<br>
+            <b>Future Scope:</b> {row['Future_Scope']}<br>
+            <b>Study Materials:</b> {row['Study_Materials']}<br>
+            <b>Exam Info:</b> {row['Exam_Info']}
+            </div>
             """, unsafe_allow_html=True)
 
-    # NOTIFICATIONS
-    elif menu=="Notifications":
-        st.title("Notifications")
-        st.info("No new notifications. All your career paths and updates appear here.")
-
-    # ABOUT US
+    # ABOUT / CONTACT
     elif menu=="About Us":
         st.title("About Career Compass")
-        st.write("Career Compass is your ultimate tool to discover and plan your future career paths!")
-        st.subheader("Contact Info")
-        st.write("Email: info@careercompass.com")
-        st.write("Phone: +91-9876543210")
-        st.write("Website: www.careercompass.com")
-        st.write("Address: Jammu & Kashmir, India")
+        st.write("This platform helps students explore careers, government colleges in J&K, and chart their personal learning paths.")
+        st.write("Contact: careercompass@example.com")
