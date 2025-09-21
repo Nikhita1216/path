@@ -143,7 +143,7 @@ def profile_setup_page():
     education = st.text_input("Education Qualification")
 
     # Avatar selection based on gender
-    avatar_map = {"Male": "male-avatar3.png", "Female": "female-avatar1.png", "Other": "other-avatar2.png"}
+    avatar_map = {"Male": "images/avatar3.png", "Female": "images/avatar1.png", "Other": "images/avatar2.png"}
     chosen_avatar = avatar_map.get(gender, "other-avatar2.png")
 
     if st.button("Finish Setup"):
