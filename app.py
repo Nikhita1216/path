@@ -143,8 +143,20 @@ def profile_setup_page():
     education = st.text_input("Education Qualification")
 
     # Avatar selection based on gender
-    avatar_map = {"Male": "images/avatar3.png", "Female": "images/avatar1.png", "Other": "images/avatar2.png"}
-    chosen_avatar = avatar_map.get(gender, "images/avatar2.png")
+    # In profile setup
+    if gender == "Female":
+       chosen_avatar = "images/avatar1.png"
+    elif gender == "Male":
+       chosen_avatar = "images/avatar3.png"
+    else:
+       chosen_avatar = "images/avatar2.png"
+
+    avatar_path = st.session_state.user.get("avatar")
+    if avatar_path and os.path.exists(avatar_path):
+       st.sidebar.image(avatar_path, width=80)
+    else:
+       st.sidebar.image("images/avatar2.png", width=80)  # default fallback
+
 
     if st.button("Finish Setup"):
         user_df = load_users()
