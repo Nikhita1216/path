@@ -11,7 +11,7 @@ import io
 st.set_page_config(page_title="Career Compass", layout="wide", initial_sidebar_state="expanded")
 
 BASE = Path(".")
-AVATAR_DIR = BASE / "images"           # put avatar PNG/JPG files here
+AVATAR_DIR = BASE / "avatars"           # put avatar PNG/JPG files here
 COLLEGES_CSV = BASE / "jk_colleges.csv" # must have columns: College,Location,Course,Future_Scope,Study_Materials,Exam_Info
 ROADMAPS_CSV = BASE / "career_roadmaps.csv" # optional: columns Career,Step,Detail (or we fallback to built-in)
 USERS_CSV = BASE / "users.csv"          # will be created when users sign up
@@ -168,8 +168,8 @@ if "notifications" not in st.session_state:
 def top_header():
     st.markdown("""
         <div style="display:flex;align-items:center;gap:12px">
-            <div style="font-size:30px;font-weight:700;color:#333">Career Compass</div>
-            <div style="color:#7a6cff">Your personalized guide </div>
+            <div style="font-size:28px;font-weight:700;color:#333">Career Compass</div>
+            <div style="color:#7a6cff">Your personalized guide — focused on Jammu & Kashmir government colleges</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -279,8 +279,8 @@ with st.sidebar:
         st.markdown("### Not signed in")
 
     st.markdown("---")
-    
-    selection = st.radio("", ["Profile","Home","Quiz","Suggested Careers","Colleges","Notifications","About Us"], index=["Profile","Home","Quiz","Suggested Careers","Colleges","Notifications","About Us"].index(st.session_state.menu))
+    st.markdown("### Navigation")
+    selection = st.radio("", ["Home","Quiz","Suggested Careers","Colleges","Profile","Notifications","About Us"], index=["Home","Quiz","Suggested Careers","Colleges","Profile","Notifications","About Us"].index(st.session_state.menu))
     st.session_state.menu = selection
 
 # -------------------------
