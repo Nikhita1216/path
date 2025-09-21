@@ -5,549 +5,516 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import io
 
-# -------------------------
-# Configuration & paths
-# -------------------------
-st.set_page_config(page_title="Career Compass", layout="wide", initial_sidebar_state="expanded")
-
+# ---------------------------
+# Configuration / Paths
+# ---------------------------
+st.set_page_config(title="Career Compass", layout="wide")
 BASE = Path(".")
-AVATAR_DIR = BASE / "avatars"           # put avatar PNG/JPG files here
-COLLEGES_CSV = BASE / "jk_colleges.csv" # must have columns: College,Location,Course,Future_Scope,Study_Materials,Exam_Info
-ROADMAPS_CSV = BASE / "career_roadmaps.csv" # optional: columns Career,Step,Detail (or we fallback to built-in)
-USERS_CSV = BASE / "users.csv"          # will be created when users sign up
-COMPASS_GIF = BASE / "compass.gif"      # optional
+IMAGES_DIRS = [BASE / "images", BASE / "avatars"]
+COLLEGES_PATHS = [BASE / "jk_colleges.csv", Path("/mnt/data/jk_colleges.csv")]
+COMPASS_GIF = BASE / "compass.gif"
+USERS_CSV = BASE / "users.csv"
 
-# -------------------------
+# ---------------------------
 # Utility helpers
-# -------------------------
-def load_csv_safe(path, fallback_df=None):
-    if path.exists():
-        try:
-            return pd.read_csv(path)
-        except Exception as e:
-            st.warning(f"Couldn't read CSV {path.name}: {e}")
-            return fallback_df if fallback_df is not None else pd.DataFrame()
-    else:
-        return fallback_df if fallback_df is not None else pd.DataFrame()
-
-def ensure_users_csv():
-    if not USERS_CSV.exists():
-        df = pd.DataFrame(columns=["email","password","name","age","gender","location","studying","avatar","your_paths"])
-        df.to_csv(USERS_CSV,index=False)
-
-def save_user_record(user_dict):
-    ensure_users_csv()
-    df = pd.read_csv(USERS_CSV)
-    # remove existing with same email
-    df = df[df['email'] != user_dict['email']]
-    df = pd.concat([df, pd.DataFrame([user_dict])], ignore_index=True)
-    df.to_csv(USERS_CSV, index=False)
-
-def get_user_by_email(email):
-    if USERS_CSV.exists():
-        df = pd.read_csv(USERS_CSV)
-        row = df[df['email']==email]
-        if not row.empty:
-            return row.iloc[0].to_dict()
-    return None
-
-def list_avatars():
-    if AVATAR_DIR.exists():
-        imgs = [p for p in AVATAR_DIR.iterdir() if p.suffix.lower() in (".png",".jpg",".jpeg")]
-        return sorted(imgs)
-    return []
-
-def pil_placeholder_avatar(text="A", size=(300,300), bg="#ffd6f0"):
-    img = Image.new("RGB", size, bg)
-    draw = ImageDraw.Draw(img)
-    try:
-        f = ImageFont.truetype("DejaVuSans-Bold.ttf", size=int(size[0]*0.4))
-    except Exception:
-        f = ImageFont.load_default()
-    w,h = draw.textsize(text, font=f)
-    draw.text(((size[0]-w)/2,(size[1]-h)/2), text, fill="#2c2c2c", font=f)
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    return buffer
-
-# -------------------------
-# Data loading
-# -------------------------
-# Provide fallback small dataset if user hasn't put a real CSV yet
-fallback_colleges = pd.DataFrame([
-    {
+# ---------------------------
+def load_colleges():
+    for p in COLLEGES_PATHS:
+        if p.exists():
+            try:
+                df = pd.read_csv(p)
+                # normalize column names (allow older formats)
+                df.columns = [c.strip() for c in df.columns]
+                # prefer these column names:
+                # Accept either (College_Name, District, Courses_Offered) or (College,Location,Course,...)
+                # Convert common variants to standard names used below
+                if "College_Name" in df.columns and "Courses_Offered" in df.columns:
+                    df = df.rename(columns={
+                        "College_Name":"College",
+                        "District":"Location",
+                        "Courses_Offered":"Course"
+                    })
+                # ensure required columns exist or add empty
+                for col in ["College","Location","Course","Future_Scope","Study_Materials","Exam_Info"]:
+                    if col not in df.columns:
+                        df[col] = ""
+                return df[["College","Location","Course","Future_Scope","Study_Materials","Exam_Info"]]
+            except Exception as e:
+                st.warning(f"Could not read colleges CSV at {p}: {e}")
+    # fallback sample
+    return pd.DataFrame([{
         "College":"Government Degree College Sopore",
         "Location":"Baramulla",
         "Course":"BSc",
-        "Future_Scope":"BSc → Research, MSc, Govt jobs",
-        "Study_Materials":"Basic Physics/Chemistry/Maths textbooks",
-        "Exam_Info":"University of Kashmir semester exams"
-    },
-    {
-        "College":"Government Degree College Anantnag",
-        "Location":"Anantnag",
-        "Course":"BA",
-        "Future_Scope":"BA → Civil Services, Masters, Teaching",
-        "Study_Materials":"History/Pol. Science/English resources",
-        "Exam_Info":"University semester exams & state entrance tests"
-    }
-])
+        "Future_Scope":"Research, MSc, Govt jobs",
+        "Study_Materials":"Physics/Chemistry/Math notes",
+        "Exam_Info":"University exams (CUET/JKCET)"
+    }])
 
-colleges_df = load_csv_safe(COLLEGES_CSV, fallback_df=fallback_colleges)
+def ensure_users_csv():
+    if not USERS_CSV.exists():
+        pd.DataFrame(columns=["email","password","name","age","gender","location","studying","avatar","your_paths"]).to_csv(USERS_CSV,index=False)
 
-# Load roadmaps if provided; otherwise we use built-in templates
-roadmaps_df = load_csv_safe(ROADMAPS_CSV, fallback_df=None)
+def save_user_record(user: dict):
+    ensure_users_csv()
+    df = pd.read_csv(USERS_CSV)
+    df = df[df['email'] != user['email']]  # remove old
+    df = pd.concat([df, pd.DataFrame([user])], ignore_index=True)
+    df.to_csv(USERS_CSV, index=False)
 
-# -------------------------
-# Predefined quiz (15 questions)
-# -------------------------
+def get_user_by_email(email):
+    ensure_users_csv()
+    df = pd.read_csv(USERS_CSV)
+    row = df[df['email'] == email]
+    if not row.empty:
+        return row.iloc[0].to_dict()
+    return None
+
+def list_avatars():
+    imgs = []
+    for d in IMAGES_DIRS:
+        if d.exists():
+            imgs += sorted([p for p in d.iterdir() if p.suffix.lower() in [".png",".jpg",".jpeg"]])
+    return imgs
+
+def placeholder_image(text="U", size=(240,240), bg="#ffd6f0"):
+    img = Image.new("RGB", size, bg)
+    draw = ImageDraw.Draw(img)
+    try:
+        f = ImageFont.truetype("DejaVuSans-Bold.ttf", int(size[0]*0.4))
+    except Exception:
+        f = ImageFont.load_default()
+    w,h = draw.textsize(text, font=f)
+    draw.text(((size[0]-w)/2,(size[1]-h)/2), text, fill="#222", font=f)
+    b = io.BytesIO()
+    img.save(b, format="PNG")
+    b.seek(0)
+    return b
+
+# ---------------------------
+# Load data
+# ---------------------------
+colleges_df = load_colleges()
+
+# ---------------------------
+# Predefined Quiz (15 questions)
+# ---------------------------
 QUIZ = [
-    {"id":1,"q":"Do you enjoy solving logical or numerical problems?","type":"choice","opts":["Yes","No"],"tags":["science","tech"]},
-    {"id":2,"q":"Do you enjoy studying living systems or helping people medically?","type":"choice","opts":["Yes","No"],"tags":["medical"]},
-    {"id":3,"q":"Do you enjoy reading, writing or arts?","type":"choice","opts":["Yes","No"],"tags":["arts","creative"]},
-    {"id":4,"q":"Do you enjoy working with computers and coding?","type":"choice","opts":["Yes","No"],"tags":["tech"]},
-    {"id":5,"q":"Do you like working with numbers, money, and business concepts?","type":"choice","opts":["Yes","No"],"tags":["commerce","business"]},
-    {"id":6,"q":"Do you enjoy practical hands-on work (lab, workshop, kitchen)?","type":"choice","opts":["Yes","No"],"tags":["vocational","practical"]},
-    {"id":7,"q":"Are you interested in national defense or serving in uniformed services?","type":"choice","opts":["Yes","No"],"tags":["defense"]},
-    {"id":8,"q":"Do you enjoy sports or physical training?","type":"choice","opts":["Yes","No"],"tags":["sports"]},
-    {"id":9,"q":"Do you enjoy designing, visual composition or UX/UI?","type":"choice","opts":["Yes","No"],"tags":["design","creative"]},
-    {"id":10,"q":"Do you prefer structured, rule-based work over freeform creativity?","type":"choice","opts":["Yes","No"],"tags":["structured"]},
-    {"id":11,"q":"Do you enjoy research, reading papers and deep analysis?","type":"choice","opts":["Yes","No"],"tags":["research","science"]},
-    {"id":12,"q":"Are you interested in entrepreneurship and running a business?","type":"choice","opts":["Yes","No"],"tags":["business"]},
-    {"id":13,"q":"Would you consider a career in teaching or counseling?","type":"choice","opts":["Yes","No"],"tags":["teaching"]},
-    {"id":14,"q":"Do you enjoy culinary arts, food science or hospitality?","type":"choice","opts":["Yes","No"],"tags":["culinary"]},
-    {"id":15,"q":"Are you comfortable with public speaking and leadership roles?","type":"choice","opts":["Yes","No"],"tags":["leadership","admin"]},
+    {"id":1,"q":"Do you enjoy solving logical or numerical problems?","opts":["Yes","No"],"tags":["science","tech"]},
+    {"id":2,"q":"Do you enjoy biology/medical topics and helping people medically?","opts":["Yes","No"],"tags":["medical"]},
+    {"id":3,"q":"Do you enjoy reading, writing or arts?","opts":["Yes","No"],"tags":["arts","creative"]},
+    {"id":4,"q":"Do you enjoy coding, building software or apps?","opts":["Yes","No"],"tags":["tech"]},
+    {"id":5,"q":"Do you like working with money, business or commerce?","opts":["Yes","No"],"tags":["commerce","business"]},
+    {"id":6,"q":"Do you enjoy hands-on/practical work (labs, workshops, kitchens)?","opts":["Yes","No"],"tags":["vocational"]},
+    {"id":7,"q":"Are you interested in defense and uniformed services?","opts":["Yes","No"],"tags":["defense"]},
+    {"id":8,"q":"Do you enjoy sports, fitness, or physical training?","opts":["Yes","No"],"tags":["sports"]},
+    {"id":9,"q":"Do you like designing graphics, UX or visual products?","opts":["Yes","No"],"tags":["design","creative"]},
+    {"id":10,"q":"Do you prefer structured/rule-based work vs freeform creativity?","opts":["Structured","Creative"],"tags":["structured","creative"]},
+    {"id":11,"q":"Do you enjoy research, experiments and in-depth study?","opts":["Yes","No"],"tags":["research"]},
+    {"id":12,"q":"Are you inclined toward entrepreneurship or running a business?","opts":["Yes","No"],"tags":["business"]},
+    {"id":13,"q":"Would you consider a career in teaching or counseling?","opts":["Yes","No"],"tags":["teaching"]},
+    {"id":14,"q":"Do you like cooking, food science or hospitality?","opts":["Yes","No"],"tags":["culinary"]},
+    {"id":15,"q":"Are you comfortable with public speaking and leadership roles?","opts":["Yes","No"],"tags":["leadership"]},
 ]
 
-# Mapping tags -> suggested careers (simplified clusters; extend as needed)
-TAG_TO_CAREERS = {
+# tag->careers mapping (expandable)
+TAG_CAREER_MAP = {
     "science":["Scientist","Researcher","Lab Technician","Biotechnologist"],
-    "tech":["Software Engineer","Data Scientist","AI Specialist","IT Support"],
-    "medical":["Doctor","Nurse","Physiotherapist","Medical Lab Technician"],
-    "arts":["Writer","Historian","Fine Artist","Teacher"],
-    "creative":["Graphic Designer","Animator","Photographer","Content Creator"],
+    "tech":["Software Engineer","Data Scientist","IT Specialist","Web Developer"],
+    "medical":["Doctor","Nurse","Medical Lab Technician","Physiotherapist"],
+    "arts":["Writer","Teacher","Historian"],
+    "creative":["Graphic Designer","Animator","Content Creator"],
     "commerce":["Accountant","Business Analyst","Economist"],
-    "business":["Entrepreneur","MBA / Management roles","Product Manager"],
+    "business":["Entrepreneur","Manager","BBA roles"],
     "vocational":["Diploma Technician","Mechanic","Culinary Professional"],
-    "defense":["Army Officer","Navy Officer","Airforce Officer","Defense Scientist"],
+    "defense":["Army Officer","Navy Officer","Airforce Officer"],
     "sports":["Athlete","Coach","Sports Physiotherapist"],
-    "design":["UX/UI Designer","Interior Designer","Industrial Designer"],
-    "structured":["Accountant","Law","Admin"],
+    "design":["UX Designer","Product Designer"],
+    "structured":["Accountant","Law"],
     "research":["Research Scientist","Academic"],
-    "teaching":["School Teacher","Lecturer","Counselor"],
+    "teaching":["Teacher","Lecturer","Counselor"],
     "culinary":["Chef","Food Technologist"],
     "leadership":["Manager","Civil Services"]
 }
 
-# -------------------------
-# Session state defaults (no reruns used)
-# -------------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "signup_step" not in st.session_state:
-    st.session_state.signup_step = 0
-if "current_user" not in st.session_state:
-    st.session_state.current_user = None  # dict
-if "menu" not in st.session_state:
-    st.session_state.menu = "Home"
-if "quiz_index" not in st.session_state:
-    st.session_state.quiz_index = 0
-if "quiz_answers" not in st.session_state:
-    st.session_state.quiz_answers = []  # list of (question_id, answer)
-if "suggested" not in st.session_state:
-    st.session_state.suggested = []     # list of career strings
-if "selected_career" not in st.session_state:
-    st.session_state.selected_career = None
-if "notifications" not in st.session_state:
-    st.session_state.notifications = []  # messages
+# Roadmaps templates: simple multi-step lists (extendable)
+ROADMAP_TEMPLATES = {
+    "Software Engineer":["12th (Maths/Comp Sci)","B.Tech / BSc CS / BCA","Internship & Projects","Jobs / Startups / Higher Studies"],
+    "Data Scientist":["12th (Maths)","BSc / BStat / BTech + Statistics/CS","Projects & Internships","Jobs / Research / Masters"],
+    "Doctor":["12th (PCB)","MBBS (Medical College)","Internship / Residency","Specialization / Practice / Research"],
+    "Engineer":["12th (PCM)","B.Tech / B.E.","Internship & Placements","MTech / Industry"],
+    "Army Officer":["12th / Graduation","NDA / CDS / SSB","Commission & Training","Service & Leadership"],
+    "Chef":["Schooling","Culinary Diploma / BSc Food Tech","Apprenticeship","Restaurant / Own Business"],
+    "Teacher":["12th","BA / BEd / BSc + BEd","Practice & Certifications","School / College Teaching"],
+    "Graphic Designer":["12th","B.Des / Diploma in Design","Portfolio & Internships","Agency / Freelance / In-house"],
+}
 
-# -------------------------
-# Helper UI pieces
-# -------------------------
-def top_header():
+# ---------------------------
+# Session state defaults
+# ---------------------------
+if "menu" not in st.session_state: st.session_state.menu = "login"
+if "logged_in" not in st.session_state: st.session_state.logged_in = False
+if "temp_signup" not in st.session_state: st.session_state.temp_signup = None
+if "current_user" not in st.session_state: st.session_state.current_user = None
+if "quiz_index" not in st.session_state: st.session_state.quiz_index = 0
+if "quiz_answers" not in st.session_state: st.session_state.quiz_answers = []  # list of dicts {qid, answer}
+if "suggested_careers" not in st.session_state: st.session_state.suggested_careers = []
+if "selected_career" not in st.session_state: st.session_state.selected_career = None
+if "notifications" not in st.session_state: st.session_state.notifications = ["Welcome to Career Compass — Complete the quiz to get personalized suggestions!"]
+
+# ---------------------------
+# UI helpers
+# ---------------------------
+def header_area():
     st.markdown("""
-        <div style="display:flex;align-items:center;gap:12px">
-            <div style="font-size:28px;font-weight:700;color:#333">Career Compass</div>
-            <div style="color:#7a6cff">Your personalized guide — focused on Jammu & Kashmir government colleges</div>
-        </div>
-        """, unsafe_allow_html=True)
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:28px;font-weight:700;color:#333">Career Compass</div>
+      <div style="color:#7a6cff">Personalized career & college guidance — Jammu & Kashmir focus</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-def show_avatar_preview(path_or_none):
-    if path_or_none:
-        p = Path(path_or_none)
-        if p.exists():
-            st.image(str(p), width=140)
-            return
-    # fallback placeholder
-    buf = pil_placeholder_avatar("U", size=(140,140))
-    st.image(buf)
+def show_avatar(user):
+    try:
+        avatar = user.get("avatar","")
+        if avatar and Path(avatar).exists():
+            st.image(str(avatar), width=120)
+        else:
+            st.image(placeholder_image(user.get("name","U")), width=120)
+    except Exception:
+        st.image(placeholder_image("U"), width=120)
 
-def progress_bar_for_quiz():
-    total = len(QUIZ)
-    current = st.session_state.quiz_index
-    pct = int((current/total)*100)
-    st.progress(pct)
+def placeholder_image(text, size=(160,160)):
+    b = placeholder_image_bytes(text, size)
+    return b
 
-def compute_suggestions_from_answers(answers):
-    # answers: list of dicts with 'question_id' and 'answer' or tags
+def placeholder_image_bytes(text="U", size=(160,160)):
+    img = Image.new("RGB", size, "#ffd6f0")
+    d = ImageDraw.Draw(img)
+    try:
+        f = ImageFont.truetype("DejaVuSans-Bold.ttf", int(size[0]*0.4))
+    except Exception:
+        f = ImageFont.load_default()
+    w,h = d.textsize(text, font=f)
+    d.text(((size[0]-w)/2,(size[1]-h)/2), text, fill="#222", font=f)
+    buf = io.BytesIO(); img.save(buf, format="PNG"); buf.seek(0)
+    return buf
+
+def compute_suggestions():
+    # count tags from answers
     tag_counts = {}
-    for item in answers:
-        qid = item.get("question_id")
-        ans = item.get("answer")
-        if ans == "Yes":
-            # find quiz entry
-            quiz_item = next((q for q in QUIZ if q['id']==qid), None)
-            if quiz_item:
-                for tag in quiz_item.get("tags",[]):
+    for a in st.session_state.quiz_answers:
+        if a["answer"] in ("Yes","Structured","Creative"):  # treat Structured/Creative as positive selections
+            q = next((q for q in QUIZ if q["id"]==a["qid"]), None)
+            if q:
+                for tag in q.get("tags",[]):
                     tag_counts[tag] = tag_counts.get(tag,0)+1
-    # transform tag_counts to career list (ranked)
+    # map tag_counts to careers
     career_scores = {}
-    for tag, count in tag_counts.items():
-        careers = TAG_TO_CAREERS.get(tag, [])
+    for tag, ccount in tag_counts.items():
+        careers = TAG_CAREER_MAP.get(tag, [])
         for c in careers:
-            career_scores[c] = career_scores.get(c,0)+count
-    # sort by score desc
-    sorted_careers = sorted(career_scores.items(), key=lambda x: x[1], reverse=True)
-    return [c for c,score in sorted_careers]
+            career_scores[c] = career_scores.get(c,0) + ccount
+    # sort top careers
+    sorted_c = sorted(career_scores.items(), key=lambda x: x[1], reverse=True)
+    return [c for c,_ in sorted_c]
 
-def show_college_cards_for_career(career):
-    # simple partial match on Course column
+def show_colleges_for_career(career):
+    # try to match by common token
     df = colleges_df.copy()
     if df.empty:
-        st.info("No college dataset found. Place `jk_colleges.csv` in the project folder.")
+        st.info("Colleges dataset not provided. Place jk_colleges.csv in your project folder.")
         return
-    # we will try to match using first word of career or common mappings
-    tokens = career.split()
-    query = tokens[0] if tokens else career
-    mask = df['Course'].str.contains(query, case=False, na=False)
+    token = career.split()[0]
+    mask = df['Course'].astype(str).str.contains(token, case=False, na=False)
     results = df[mask]
+    # fallback mapping
+    alt = {
+        "Engineer":"BTech",
+        "Doctor":"MBBS",
+        "Scientist":"BSc",
+        "Software":"BCA,BSc,BE,BTech",
+        "Accountant":"BCom",
+        "Teacher":"BA,BEd"
+    }
+    if results.empty and token in alt:
+        for key in alt[token].split(","):
+            results = pd.concat([results, df[df['Course'].astype(str).str.contains(key, case=False, na=False)]])
     if results.empty:
-        # try alternate mapping: e.g., Engineer -> BTech, Technician -> Diploma
-        alt_map = {
-            "Engineer":"BTech",
-            "Doctor":"MBBS",
-            "Scientist":"BSc",
-            "Accountant":"BCom",
-            "Teacher":"BA",
-            "Designer":"BDes",
-            "Chef":"Diploma",
-            "Athlete":"Physical Education"
-        }
-        alt = alt_map.get(tokens[0], "")
-        if alt:
-            results = df[df['Course'].str.contains(alt, case=False, na=False)]
-    if results.empty:
-        st.info("No matching government colleges found for this career in the dataset.")
+        st.info("No government colleges in dataset match that career. Try searching by course in Colleges tab.")
         return
-    # show as cards
-    for _, r in results.iterrows():
+    for _, row in results.drop_duplicates().iterrows():
         st.markdown(f"""
-        <div style='background:#fff1f3;border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,0.08)'>
-            <h4 style='margin:0'>{r.get('College', '')} — <small style='color:#666'>{r.get('Location','')}</small></h4>
-            <div style='margin-top:6px'>
-                <b>Course:</b> {r.get('Course','')} <br>
-                <b>Future Scope:</b> {r.get('Future_Scope','')}<br>
-                <b>Study Materials:</b> {r.get('Study_Materials','')}<br>
-                <b>Exam Info:</b> {r.get('Exam_Info','')}
+            <div style='background:#fff1f3;padding:14px;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,0.06)'>
+                <b>{row.get('College','')}</b> — <span style='color:#666'>{row.get('Location','')}</span><br>
+                <b>Course:</b> {row.get('Course','')}<br>
+                <b>Future Scope:</b> {row.get('Future_Scope','')}<br>
+                <b>Study Materials:</b> {row.get('Study_Materials','')}<br>
+                <b>Exam Info:</b> {row.get('Exam_Info','')}
             </div>
-        </div>
         """, unsafe_allow_html=True)
 
-# -------------------------
-# Top UI (always)
-# -------------------------
-top_header()
+# ---------------------------
+# Top header + sidebar
+# ---------------------------
+header_area()
 st.markdown("---")
 
-# Left sidebar: navigation + profile quick
 with st.sidebar:
-    if st.session_state.current_user:
-        st.markdown("### Profile")
-        show_avatar_preview(st.session_state.current_user.get("avatar"))
-        st.markdown(f"**{st.session_state.current_user.get('name','')}**")
-        st.markdown(f"{st.session_state.current_user.get('email','')}")
-        if st.button("Log out"):
-            st.session_state.logged_in = False
-            st.session_state.current_user = None
-            st.session_state.menu = "Home"
-            st.session_state.quiz_index = 0
-            st.session_state.quiz_answers = []
-            st.session_state.suggested = []
-            st.session_state.selected_career = None
+    st.markdown("### Navigation")
+    if not st.session_state.logged_in:
+        choice = st.radio("", ["Login / Sign up", "About Us"])
+        st.session_state.menu = "auth" if choice=="Login / Sign up" else "about"
     else:
-        st.markdown("### Not signed in")
+        choice = st.radio("", ["Home","Quiz","Suggested Careers","Colleges","Notifications","Profile","About Us"])
+        st.session_state.menu = choice
 
     st.markdown("---")
-    st.markdown("### Navigation")
-    selection = st.radio("", ["Home","Quiz","Suggested Careers","Colleges","Profile","Notifications","About Us"], index=["Home","Quiz","Suggested Careers","Colleges","Profile","Notifications","About Us"].index(st.session_state.menu))
-    st.session_state.menu = selection
+    if st.session_state.logged_in and st.session_state.current_user:
+        u = st.session_state.current_user
+        try:
+            if u.get("avatar") and Path(u["avatar"]).exists():
+                st.image(u["avatar"], width=100)
+            else:
+                st.image(placeholder_image_bytes(u.get("name","U")), width=100)
+        except Exception:
+            st.image(placeholder_image_bytes("U"), width=100)
+        st.markdown(f"**{u.get('name','')}**")
+        st.markdown(u.get("email",""))
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.current_user = None
+            st.session_state.quiz_index = 0
+            st.session_state.quiz_answers = []
+            st.session_state.suggested_careers = []
+            st.session_state.selected_career = None
+            st.session_state.notifications.append("You logged out.")
 
-# -------------------------
-# Authentication (Home area)
-# -------------------------
+# ---------------------------
+# AUTH: Login / Signup / Profile setup
+# ---------------------------
 if not st.session_state.logged_in:
-    st.header("Sign up / Log in")
-    st.info("Create an account (email + password) — profile (name, age, avatar) comes next.")
-    col1,col2 = st.columns(2)
+    st.header("Login or Sign up")
+    col1, col2 = st.columns(2)
     with col1:
         st.subheader("Login")
-        email_login = st.text_input("Email (login)", key="login_email")
-        pwd_login = st.text_input("Password (login)", type="password", key="login_pwd")
+        login_email = st.text_input("Email", key="login_email")
+        login_pwd = st.text_input("Password", type="password", key="login_pwd")
         if st.button("Login", key="btn_login"):
-            user = get_user_by_email(email_login)
-            if user and str(user.get("password","")) == str(pwd_login):
-                st.success("Logged in successfully")
+            user = get_user_by_email(login_email)
+            if user and str(user.get("password","")) == str(login_pwd):
                 st.session_state.logged_in = True
                 st.session_state.current_user = user
                 st.session_state.menu = "Home"
-                # add a small notification
-                st.session_state.notifications.append("Welcome back!")
+                st.success(f"Welcome back, {user.get('name','User')}!")
             else:
-                st.error("Invalid credentials (or user doesn't exist). Please sign up if new.")
+                st.error("Invalid credentials or user not found.")
     with col2:
-        st.subheader("Sign up")
-        email_s = st.text_input("Email (signup)", key="signup_email")
-        pwd_s = st.text_input("Password (signup)", type="password", key="signup_pwd")
-        if st.button("Start Signup", key="btn_start_signup"):
-            if email_s and pwd_s:
-                # create a minimal record and go to profile setup step
-                st.session_state.signup_temp = {"email":email_s,"password":pwd_s}
-                st.session_state.signup_step = 1
-                st.session_state.menu = "Profile"
-                st.success("Continue to Profile setup on the Profile tab (left navigation).")
+        st.subheader("Sign up (email + password)")
+        signup_email = st.text_input("Email for signup", key="signup_email")
+        signup_pwd = st.text_input("Password for signup", type="password", key="signup_pwd")
+        if st.button("Start Sign up", key="btn_start_signup"):
+            if signup_email and signup_pwd:
+                if get_user_by_email(signup_email):
+                    st.error("Email already registered. Login instead.")
+                else:
+                    st.session_state.temp_signup = {"email":signup_email,"password":signup_pwd}
+                    st.info("Now go to Profile tab to complete signup (enter name, age, choose avatar).")
+                    # set menu to Profile so user can click
+                    st.session_state.menu = "Profile"
             else:
-                st.warning("Enter email and password to start signup.")
-    st.markdown("---")
-    st.write("If you already signed up but didn't fill profile, click Profile in the navigation to complete setup.")
-    st.stop()  # stop here until logged in
+                st.warning("Enter both email and password to start signup.")
 
-# -------------------------
-# Logged-in user area
-# -------------------------
-# Ensure current_user is set for logged users
-if st.session_state.logged_in and not st.session_state.current_user:
-    # If we just logged in via form, set current_user
-    # try to find user by the email in signup_temp or login field
-    if "signup_temp" in st.session_state:
-        u = get_user_by_email(st.session_state.signup_temp["email"])
-        if u:
-            st.session_state.current_user = u
+    st.markdown("---")
+    st.markdown("Why sign up? So you can save your paths, get notifications, and revisit quiz results.")
+    st.stop()
+
+# ---------------------------
+# LOGGED-IN: main pages
+# ---------------------------
+menu = st.session_state.menu
 
 # HOME
-if st.session_state.menu == "Home":
-    st.header("Home")
+if menu == "Home":
+    st.header("Welcome to Career Compass")
     if COMPASS_GIF.exists():
-        st.image(str(COMPASS_GIF), width=220)
-    st.markdown("> “Education and the right guidance unlock future opportunities.”")
-    st.write("Use the Quiz tab to answer a short aptitude/interest questionnaire. After finishing, open Suggested Careers to see personalized options, roadmaps and colleges.")
-    st.write("Quick actions:")
-    c1, c2, c3 = st.columns(3)
-    if c1.button("Take Quiz"):
-        st.session_state.menu = "Quiz"
-    if c2.button("View Colleges"):
-        st.session_state.menu = "Colleges"
-    if c3.button("Profile"):
-        st.session_state.menu = "Profile"
+        try:
+            st.image(str(COMPASS_GIF), width=220)
+        except Exception:
+            pass
+    st.markdown("> “Education is the key to unlocking your future.”")
+    st.write("Pastel UI, easy navigation. Start by taking the quiz to get personalized career suggestions.")
 
-# PROFILE (signup continuation, avatar + details)
-elif st.session_state.menu == "Profile":
+# PROFILE (complete signup or edit)
+elif menu == "Profile":
     st.header("Profile Setup / Edit")
-    # if user came from signup_start temp
-    if st.session_state.current_user is None and st.session_state.get("signup_temp"):
-        temp = st.session_state.signup_temp
-        # show profile form
-        name = st.text_input("Full name", key="profile_name")
-        age = st.number_input("Age", min_value=10, max_value=100, value=18, key="profile_age")
-        gender = st.selectbox("Gender", ["Male","Female","Other"], key="profile_gender")
-        location = st.text_input("Location (District)", key="profile_location")
-        studying = st.selectbox("Currently studying", ["Schooling","Intermediate/Diploma","BTech/BSc","Other"], key="profile_studying")
-        st.markdown("Choose avatar:")
-        avatar_files = list_avatars()
-        avatar_choice = None
-        if avatar_files:
-            cols = st.columns(min(4,len(avatar_files)))
-            for i,p in enumerate(avatar_files):
-                with cols[i % 4]:
-                    st.image(str(p), width=100)
-                    if st.button(f"Pick {i+1}", key=f"pick_{i}"):
-                        avatar_choice = str(p)
-                        st.session_state.temp_avatar = avatar_choice
-        else:
-            st.info("No avatar images found in `/avatars` folder. You can upload them to that folder or use the placeholder.")
-            avatar_choice = None
-        if st.button("Complete Signup"):
-            # create user dict and save
+    # if user doesn't yet exist (signup in progress)
+    if st.session_state.temp_signup and not st.session_state.current_user:
+        st.info("Finish signup: enter profile details below.")
+        name = st.text_input("Full name", key="p_name")
+        age = st.number_input("Age", 10, 100, key="p_age")
+        gender = st.selectbox("Gender", ["Male","Female","Other"], key="p_gender")
+        location = st.text_input("Location / District", key="p_location")
+        studying = st.selectbox("Currently studying", ["Schooling","Intermediate/Diploma","BTech/BSc","Other"], key="p_studying")
+        st.write("Choose avatar (if folder images exist) or leave blank for default.")
+        avatars = list_avatars()
+        selected_avatar = st.selectbox("Avatar (choose file path)", [""] + [str(p) for p in avatars], key="p_avatar")
+        if st.button("Complete Signup & Save Profile"):
             user = {
-                "email": temp["email"],
-                "password": temp["password"],
+                "email": st.session_state.temp_signup["email"],
+                "password": st.session_state.temp_signup["password"],
                 "name": name,
                 "age": age,
                 "gender": gender,
                 "location": location,
                 "studying": studying,
-                "avatar": st.session_state.get("temp_avatar",""),
+                "avatar": selected_avatar,
                 "your_paths":""
             }
             save_user_record(user)
             st.session_state.current_user = user
             st.session_state.logged_in = True
-            st.success("Signup complete! Welcome.")
+            st.session_state.temp_signup = None
+            st.success("Signup complete — welcome!")
     else:
-        # allow editing existing user profile
+        # edit existing profile
         user = st.session_state.current_user
-        st.image(user.get("avatar") or pil_placeholder_avatar("U"), width=120)
-        new_name = st.text_input("Full name", value=user.get("name",""))
-        new_age = st.number_input("Age", min_value=10, max_value=100, value=int(user.get("age") or 18))
-        new_gender = st.selectbox("Gender", ["Male","Female","Other"], index=["Male","Female","Other"].index(user.get("gender","Male")))
-        new_location = st.text_input("Location (District)", value=user.get("location",""))
-        new_studying = st.selectbox("Currently studying", ["Schooling","Intermediate/Diploma","BTech/BSc","Other"],
-                                    index=["Schooling","Intermediate/Diploma","BTech/BSc","Other"].index(user.get("studying","Schooling")))
-        if st.button("Save Profile Changes"):
-            user['name']=new_name; user['age']=new_age; user['gender']=new_gender
-            user['location']=new_location; user['studying']=new_studying
-            save_user_record(user)
-            st.session_state.current_user = user
-            st.success("Profile updated.")
+        if not user:
+            st.info("No profile found — use Signup to create one.")
+        else:
+            st.image(user.get("avatar") or placeholder_image_bytes(user.get("name","U")), width=120)
+            new_name = st.text_input("Full Name", value=user.get("name",""))
+            new_age = st.number_input("Age", 10, 100, value=int(user.get("age") or 18))
+            new_gender = st.selectbox("Gender", ["Male","Female","Other"], index=["Male","Female","Other"].index(user.get("gender","Male")))
+            new_location = st.text_input("Location / District", value=user.get("location",""))
+            new_studying = st.selectbox("Currently studying", ["Schooling","Intermediate/Diploma","BTech/BSc","Other"], index=0)
+            if st.button("Save Profile Changes"):
+                user['name']=new_name; user['age']=new_age; user['gender']=new_gender
+                user['location']=new_location; user['studying']=new_studying
+                save_user_record(user)
+                st.session_state.current_user = user
+                st.success("Profile updated.")
 
-# QUIZ (one question at a time, progress)
-elif st.session_state.menu == "Quiz":
-    st.header("Career Quiz — step-by-step")
+# QUIZ
+elif menu == "Quiz":
+    st.header("Personalized Career Quiz")
     total = len(QUIZ)
     idx = st.session_state.quiz_index
-    st.write(f"Progress: {idx}/{total}")
-    # show progress visually
-    st.progress(min(100, int((idx/total)*100)))
+    st.write(f"Question {idx+1} of {total}")
+    st.progress(int((idx/total)*100))
     if idx < total:
-        item = QUIZ[idx]
-        st.subheader(f"Q{idx+1}. {item['q']}")
-        ans = st.radio("Choose:", item['opts'], key=f"q_{item['id']}")
-        nav_col1, nav_col2 = st.columns([1,1])
-        if nav_col1.button("Previous") and idx>0:
-            st.session_state.quiz_index = max(0, idx-1)
-            # optionally remove last answer
-            if st.session_state.quiz_answers:
-                st.session_state.quiz_answers.pop()
-        if nav_col2.button("Next"):
-            # store answer
-            st.session_state.quiz_answers.append({"question_id":item['id'], "answer":ans})
-            st.session_state.quiz_index = idx+1
-    else:
-        st.success("Quiz complete — you can view suggested careers below")
-        # compute suggestions
-        suggestions = compute_suggestions_from_answers(st.session_state.quiz_answers)
-        if not suggestions:
-            st.info("No strong matches from quiz; try exploring the Careers tab.")
+        q = QUIZ[idx]
+        st.subheader(q["q"])
+        if q["opts"] == ["Structured","Creative"]:
+            ans = st.radio("Select", q["opts"], key=f"q_{q['id']}")
         else:
-            st.session_state.suggested = suggestions
-            st.markdown("### Suggested careers (click to view roadmap + colleges)")
-            cols = st.columns(min(4, len(suggestions)))
-            for i, career in enumerate(suggestions):
-                with cols[i % 4]:
-                    if st.button(career, key=f"career_btn_{i}"):
-                        st.session_state.selected_career = career
-                        st.session_state.menu = "Suggested Careers"
-            # add notification
-            st.session_state.notifications.append(f"New career suggestions: {', '.join(suggestions[:3])}")
-
-# SUGGESTED CAREERS -> show roadmap + colleges when clicked
-elif st.session_state.menu == "Suggested Careers":
-    st.header("Suggested Careers")
-    if not st.session_state.suggested:
-        st.info("No suggestions yet — take the quiz.")
+            ans = st.radio("Select", q["opts"], key=f"q_{q['id']}")
+        cola, colb = st.columns(2)
+        with cola:
+            if st.button("Previous") and idx>0:
+                # move back one and remove last stored answer if exists
+                if st.session_state.quiz_answers:
+                    st.session_state.quiz_answers.pop()
+                st.session_state.quiz_index = idx-1
+        with colb:
+            if st.button("Next"):
+                # record answer
+                st.session_state.quiz_answers.append({"qid":q["id"], "answer":ans})
+                st.session_state.quiz_index = idx+1
     else:
-        st.write("Click a career to see roadmap and matching government colleges in J&K.")
-        # if selected_career exists, display details
-        sel = st.session_state.selected_career
-        if sel is None:
-            # show clickable list
-            for i,c in enumerate(st.session_state.suggested):
-                if st.button(c, key=f"show_{i}"):
+        st.success("Quiz completed!")
+        # compute suggestions
+        suggestions = compute_suggestions()
+        if not suggestions:
+            # fallback: pick some generic careers
+            suggestions = ["Software Engineer","Engineer","Teacher","Chef","Army Officer"]
+        st.session_state.suggested_careers = suggestions
+        st.markdown("### Suggested Careers (click to view roadmap & colleges)")
+        cols = st.columns(min(4, len(suggestions)))
+        for i, c in enumerate(suggestions):
+            with cols[i % 4]:
+                if st.button(c, key=f"suggest_{i}"):
                     st.session_state.selected_career = c
-                    sel = c
-        if sel:
-            st.subheader(f"{sel} — Roadmap")
-            # try roadmaps_df first if available
-            if roadmaps_df is not None and not roadmaps_df.empty and 'Career' in roadmaps_df.columns:
-                steps = roadmaps_df[roadmaps_df['Career'].str.contains(sel, case=False, na=False)]
-                if not steps.empty:
-                    for _,r in steps.iterrows():
-                        st.markdown(f"- **{r.get('Step','')}** — {r.get('Detail','')}")
-                else:
-                    # fallback built-in roadmap template
-                    display_roadmap_msg = [
-                        "Complete 12th / relevant board exams",
-                        "Enroll in relevant Bachelor's degree or diploma",
-                        "Take internships / projects & certifications",
-                        "Apply for jobs / higher studies / competitive exams"
-                    ]
-                    for s in display_roadmap_msg:
-                        st.markdown(f"- {s}")
-            else:
-                # fallback
-                display_roadmap_msg = [
-                    "Complete 12th / relevant board exams",
-                    "Enroll in relevant Bachelor's degree or diploma",
-                    "Take internships / projects & certifications",
-                    "Apply for jobs / higher studies / competitive exams"
-                ]
-                for s in display_roadmap_msg:
-                    st.markdown(f"- {s}")
+                    st.session_state.menu = "Suggested Careers"
+        if st.button("Retake Quiz"):
+            st.session_state.quiz_index = 0
+            st.session_state.quiz_answers = []
+            st.session_state.suggested_careers = []
+            st.session_state.selected_career = None
 
-            st.subheader("Government colleges in J&K offering related courses")
-            show_college_cards_for_career(sel)
+# SUGGESTED CAREERS -> ROADMAP + COLLEGES
+elif menu == "Suggested Careers":
+    st.header("Suggested Careers & Roadmaps")
+    if not st.session_state.suggested_careers:
+        st.info("No suggestions yet — take quiz first.")
+    else:
+        if st.session_state.selected_career is None:
+            st.write("Click a career to view full roadmap + matching J&K government colleges.")
+            for i,c in enumerate(st.session_state.suggested_careers):
+                if st.button(c, key=f"pickc_{i}"):
+                    st.session_state.selected_career = c
+        else:
+            c = st.session_state.selected_career
+            st.subheader(f"{c} — Roadmap")
+            steps = ROADMAP_TEMPLATES.get(c, ["12th / Relevant Diploma","Undergrad Degree","Internship / Projects","Jobs / Higher Studies"])
+            for s in steps:
+                st.markdown(f"- {s}")
+            st.subheader("Matching Government Colleges in Jammu & Kashmir")
+            show_colleges_for_career(c)
+            if st.button("Back to suggestions"):
+                st.session_state.selected_career = None
 
-# COLLEGES general listing & search/filter
-elif st.session_state.menu == "Colleges":
+# COLLEGES (search/filter)
+elif menu == "Colleges":
     st.header("Government Colleges — Jammu & Kashmir")
     if colleges_df.empty:
-        st.info("No colleges CSV found. Place `jk_colleges.csv` in project folder with columns: College,Location,Course,Future_Scope,Study_Materials,Exam_Info")
+        st.info("No colleges CSV found. Place 'jk_colleges.csv' in project folder.")
     else:
-        # allow filters
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            by_course = st.text_input("Filter by Course (partial)", value="")
-        with col2:
-            by_location = st.text_input("Filter by Location/District (partial)", value="")
-        with col3:
-            limit = st.number_input("Max results", min_value=1, max_value=200, value=50)
+        c1,c2,c3 = st.columns(3)
+        with c1:
+            q_course = st.text_input("Search Course (partial)", value="")
+        with c2:
+            q_loc = st.text_input("Search Location/District (partial)", value="")
+        with c3:
+            maxr = st.number_input("Max results", min_value=1, max_value=200, value=50)
         df = colleges_df.copy()
-        if by_course:
-            df = df[df['Course'].str.contains(by_course, case=False, na=False)]
-        if by_location:
-            df = df[df['Location'].str.contains(by_location, case=False, na=False)]
-        st.write(f"Showing {min(len(df),limit)} results")
-        for _, r in df.head(limit).iterrows():
+        if q_course:
+            df = df[df['Course'].astype(str).str.contains(q_course, case=False, na=False)]
+        if q_loc:
+            df = df[df['Location'].astype(str).str.contains(q_loc, case=False, na=False)]
+        st.write(f"Showing {min(len(df), maxr)} results")
+        for _, r in df.head(maxr).iterrows():
             st.markdown(f"""
-            <div style='background:#fff1f3;padding:12px;border-radius:12px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,0.06)'>
-                <b style='font-size:16px'>{r.get('College','')}</b> — <span style='color:#666'>{r.get('Location','')}</span><br>
-                <b>Course:</b> {r.get('Course','')}<br>
-                <b>Future Scope:</b> {r.get('Future_Scope','')}<br>
-                <b>Study Materials:</b> {r.get('Study_Materials','')}<br>
-                <b>Exam Info:</b> {r.get('Exam_Info','')}
-            </div>
+                <div style='background:#fff1f3;padding:12px;border-radius:12px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,0.06)'>
+                    <b>{r.get('College','')}</b> — <span style='color:#666'>{r.get('Location','')}</span><br>
+                    <b>Course:</b> {r.get('Course','')}<br>
+                    <b>Future Scope:</b> {r.get('Future_Scope','')}<br>
+                    <b>Study Materials:</b> {r.get('Study_Materials','')}<br>
+                    <b>Exam Info:</b> {r.get('Exam_Info','')}
+                </div>
             """, unsafe_allow_html=True)
 
 # NOTIFICATIONS
-elif st.session_state.menu == "Notifications":
+elif menu == "Notifications":
     st.header("Notifications")
     if not st.session_state.notifications:
-        st.info("No notifications yet — take action (quiz / profile) to generate updates.")
+        st.info("No notifications yet.")
     else:
-        for n in st.session_state.notifications[::-1]:
+        for n in reversed(st.session_state.notifications):
             st.success(n)
 
 # ABOUT US
-elif st.session_state.menu == "About Us":
-    st.header("About Career Compass")
+elif menu == "About Us":
+    st.header("About Career Compass (SIH Project)")
     st.markdown("""
-    **Career Compass** is a lightweight personalized guidance platform focusing on students of Jammu & Kashmir.
-    It helps students:
-    - discover career clusters from an adaptive quiz,
-    - see suggested career roadmaps,
-    - find government colleges in J&K that offer relevant courses,
-    - save personalized paths in profile.
+    **Problem statement:** Many students and parents are unclear about the importance of graduation,
+    what degree courses offer and how courses map to careers. Career Compass helps students (especially
+    in Jammu & Kashmir) choose suitable streams, explore government colleges, and plan roadmaps.
     """)
-    st.markdown("**Contact:** support@careercompass.local  — This is a prototype for hackathon/demo use.")
+    st.subheader("Contact")
+    st.write("- Email: support@careercompass.in")
+    st.write("- Phone: +91 98765 43210")
+    st.write("- Address: 123 Education Lane, Srinagar, Jammu & Kashmir")
 
-# end of script
+# ---------------------------
+# End of app
+# ---------------------------
