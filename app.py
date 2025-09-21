@@ -279,8 +279,8 @@ with st.sidebar:
         st.markdown("### Not signed in")
 
     st.markdown("---")
-    st.markdown("### Navigation")
-    selection = st.radio("", ["Home","Quiz","Suggested Careers","Colleges","Profile","Notifications","About Us"], index=["Home","Quiz","Suggested Careers","Colleges","Profile","Notifications","About Us"].index(st.session_state.menu))
+    
+    selection = st.radio("", ["Profile","Home","Quiz","Suggested Careers","Colleges","Notifications","About Us"], index=["Profile","Home","Quiz","Your paths","Explore","Notifications","About Us"].index(st.session_state.menu))
     st.session_state.menu = selection
 
 # -------------------------
