@@ -22,7 +22,7 @@ choice = st.sidebar.radio("Navigate", menu)
 
 if choice == "Home":
     st.markdown("# Career Compass 🧭")
-    st.image("images/compass.gif", width=200)
+    st.image("compass.gif", width=200)
     st.markdown("> Education shapes your future. Make informed choices!")
     col1, col2 = st.columns(2)
     with col1:
