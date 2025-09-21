@@ -144,7 +144,7 @@ def profile_setup_page():
 
     # Avatar selection based on gender
     avatar_map = {"Male": "images/avatar3.png", "Female": "images/avatar1.png", "Other": "images/avatar2.png"}
-    chosen_avatar = avatar_map.get(gender, "other-avatar2.png")
+    chosen_avatar = avatar_map.get(gender, "images/avatar2.png")
 
     if st.button("Finish Setup"):
         user_df = load_users()
