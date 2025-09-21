@@ -8,9 +8,8 @@ import os
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
 USERS_CSV = "users.csv"
-COLLEGES_CSV = "/mnt/data/jk_colleges.csv"  # Your dataset path
+COLLEGES_CSV = "jk_colleges.csv"  # Path to college CSV
 AVATAR_FOLDER = "images"
-COMPASS_GIF = "compass.gif"
 
 # -------------------------------------------------
 # LOAD DATA
@@ -18,7 +17,7 @@ COMPASS_GIF = "compass.gif"
 def load_users():
     if os.path.exists(USERS_CSV):
         return pd.read_csv(USERS_CSV)
-    return pd.DataFrame(columns=["email", "password", "name", "avatar"])
+    return pd.DataFrame(columns=["email", "password", "name", "age", "gender", "city", "state", "education", "avatar"])
 
 def save_users(df):
     df.to_csv(USERS_CSV, index=False)
@@ -26,36 +25,71 @@ def save_users(df):
 def load_colleges():
     if os.path.exists(COLLEGES_CSV):
         return pd.read_csv(COLLEGES_CSV)
-    return pd.DataFrame(columns=["College", "Location", "Course", "Future_Scope", "Study_Materials", "Exam_Info"])
+    return pd.DataFrame(columns=["College", "Website", "Course"])
 
 # -------------------------------------------------
 # QUIZ DATA
 # -------------------------------------------------
 QUIZ_QUESTIONS = [
-    {
-        "q": "Do you enjoy solving technical problems?",
-        "options": ["Yes, love it", "Sometimes", "Not really"],
-        "career_map": {"Yes, love it": "Engineer", "Sometimes": "Researcher", "Not really": "Arts"}
-    },
-    {
-        "q": "Do you like working with people or alone?",
-        "options": ["With people", "Alone", "Both"],
-        "career_map": {"With people": "Teacher", "Alone": "Scientist", "Both": "Manager"}
-    },
-    {
-        "q": "What excites you most?",
-        "options": ["Space", "Electronics", "Biology", "History"],
-        "career_map": {"Space": "Astronomer", "Electronics": "ECE Engineer", "Biology": "Doctor", "History": "Civil Services"}
-    }
+    {"q": "Do you enjoy solving technical problems?", "options": ["Yes", "Sometimes", "Not really"], 
+     "career_map": {"Yes": "Engineer", "Sometimes": "Researcher", "Not really": "Arts"}},
+    {"q": "Do you like working with people or alone?", "options": ["With people", "Alone", "Both"], 
+     "career_map": {"With people": "Teacher", "Alone": "Scientist", "Both": "Manager"}},
+    {"q": "What excites you most?", "options": ["Space", "Electronics", "Biology", "History"], 
+     "career_map": {"Space": "Astronomer", "Electronics": "ECE Engineer", "Biology": "Doctor", "History": "Civil Services"}},
+    {"q": "Do you enjoy research and experiments?", "options": ["Yes", "Sometimes", "No"], 
+     "career_map": {"Yes": "Scientist", "Sometimes": "Researcher", "No": "Manager"}},
+    {"q": "Do you like programming?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Engineer", "No": "Manager"}},
+    {"q": "Do you enjoy teaching others?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Teacher", "No": "Scientist"}},
+    {"q": "Are you interested in healthcare?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Doctor", "No": "Engineer"}},
+    {"q": "Do you like organizing events or managing teams?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Manager", "No": "Scientist"}},
+    {"q": "Are you interested in government services?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Civil Services", "No": "Engineer"}},
+    {"q": "Do you enjoy analyzing data?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Engineer", "No": "Teacher"}},
+    {"q": "Do you like working with numbers?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Engineer", "No": "Arts"}},
+    {"q": "Do you like creative problem solving?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Engineer", "No": "Manager"}},
+    {"q": "Are you fascinated by the universe?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Astronomer", "No": "Scientist"}},
+    {"q": "Do you enjoy helping people directly?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Doctor", "No": "Engineer"}},
+    {"q": "Do you enjoy reading historical events?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Civil Services", "No": "Scientist"}},
+    {"q": "Do you like coding competitions?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Engineer", "No": "Manager"}},
+    {"q": "Do you enjoy lab experiments?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Scientist", "No": "Teacher"}},
+    {"q": "Do you like mentoring or coaching others?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Teacher", "No": "Scientist"}},
+    {"q": "Are you interested in public policy?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "Civil Services", "No": "Engineer"}},
+    {"q": "Do you like designing electronic devices?", "options": ["Yes", "No"], 
+     "career_map": {"Yes": "ECE Engineer", "No": "Scientist"}}
+   
 ]
 
 CAREER_ROADMAPS = {
-    "Engineer": ["Step 1: Choose a branch (CSE/ECE/ME)", "Step 2: Get B.Tech degree", "Step 3: Do projects + internships", "Step 4: Appear for GATE/placements"],
-    "Teacher": ["Step 1: Complete UG/PG", "Step 2: Clear NET/SET", "Step 3: Start teaching career"],
-    "Scientist": ["Step 1: Strong UG base", "Step 2: Masters + Research", "Step 3: Apply for DRDO/ISRO/PhD"],
-    "Astronomer": ["Step 1: Physics/Maths UG", "Step 2: Astronomy MSc", "Step 3: ISRO/Research"],
-    "Doctor": ["Step 1: Clear NEET", "Step 2: MBBS", "Step 3: PG specialization"],
-    "Civil Services": ["Step 1: Graduate in any stream", "Step 2: UPSC Prep", "Step 3: Write Mains + Interview"]
+    "Engineer": ["Choose a branch (CSE/ECE/ME)", "Get B.Tech degree", "Projects + internships", "Appear for GATE/placements"],
+    "Teacher": ["Complete UG/PG", "Clear NET/SET", "Start teaching career"],
+    "Scientist": ["Strong UG base", "Masters + Research", "Apply for DRDO/ISRO/PhD"],
+    "Astronomer": ["Physics/Maths UG", "Astronomy MSc", "ISRO/Research"],
+    "Doctor": ["Clear NEET", "MBBS", "PG specialization"],
+    "Civil Services": ["Graduate in any stream", "UPSC Prep", "Write Mains + Interview"]
+}
+
+CAREER_DESCRIPTIONS = {
+    "Engineer": "Design and build solutions using technology.",
+    "Teacher": "Educate and guide students in schools or colleges.",
+    "Scientist": "Conduct research and experiments in scientific domains.",
+    "Astronomer": "Study celestial bodies and the universe.",
+    "Doctor": "Provide medical care to patients.",
+    "Civil Services": "Work in government services and administration."
 }
 
 # -------------------------------------------------
@@ -67,14 +101,14 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "quiz_answers" not in st.session_state:
     st.session_state.quiz_answers = []
+if "quiz_index" not in st.session_state:
+    st.session_state.quiz_index = 0
 
 # -------------------------------------------------
 # LOGIN / SIGNUP
 # -------------------------------------------------
 def login_page():
-    st.image(COMPASS_GIF, width=120)
     st.title("🔐 Login to Career Compass")
-
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
     with tab1:
@@ -96,16 +130,27 @@ def login_page():
             st.session_state.temp_signup = {"email": email, "password": password}
             st.session_state.page = "profile_setup"
 
+# -------------------------------------------------
+# PROFILE SETUP
+# -------------------------------------------------
 def profile_setup_page():
     st.title("👤 Set up your profile")
     name = st.text_input("Full Name")
-    avatars = [os.path.join(AVATAR_FOLDER, f) for f in os.listdir(AVATAR_FOLDER) if f.endswith(".png")]
-    chosen = st.radio("Choose an avatar", avatars, format_func=lambda x: os.path.basename(x))
+    age = st.number_input("Age", min_value=10, max_value=100)
+    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
+    city = st.text_input("City")
+    state = st.text_input("State")
+    education = st.text_input("Education Qualification")
+
+    # Avatar selection based on gender
+    avatar_map = {"Male": "male-avatar3.png", "Female": "female-avatar1.png", "Other": "other-avatar2.png"}
+    chosen_avatar = avatar_map.get(gender, "other-avatar2.png")
+
     if st.button("Finish Setup"):
         user_df = load_users()
-        new_user = {"email": st.session_state.temp_signup["email"],
-                    "password": st.session_state.temp_signup["password"],
-                    "name": name, "avatar": chosen}
+        new_user = {"email": st.session_state.temp_signup["email"], "password": st.session_state.temp_signup["password"],
+                    "name": name, "age": age, "gender": gender, "city": city, "state": state,
+                    "education": education, "avatar": os.path.join(AVATAR_FOLDER, chosen_avatar)}
         user_df = pd.concat([user_df, pd.DataFrame([new_user])], ignore_index=True)
         save_users(user_df)
         st.session_state.user = new_user
@@ -113,25 +158,34 @@ def profile_setup_page():
         st.success("Profile created ✅")
 
 # -------------------------------------------------
-# MAIN APP
+# HOME PAGE
 # -------------------------------------------------
 def home_page():
-    st.sidebar.image(st.session_state.user["avatar"], width=80)
-    st.sidebar.title(f"Welcome, {st.session_state.user['name']}")
-    choice = st.sidebar.radio("📍 Navigate", ["Home", "Quiz", "Careers", "Colleges", "About Us", "Logout"])
+    sidebar()
+    st.title("🧭 Career Compass")
+    st.subheader("Your personalized guide to careers, colleges, and opportunities.")
 
+# -------------------------------------------------
+# SIDEBAR
+# -------------------------------------------------
+def sidebar():
+    st.sidebar.image(st.session_state.user["avatar"], width=80)
+    st.sidebar.title(f"{st.session_state.user['name']}")
+    choice = st.sidebar.radio("📍 Navigate", ["Home", "Quiz", "Explore", "Careers", "Colleges", "Profile", "About Us", "Logout"])
     if choice == "Home":
-        st.title("🧭 Career Compass")
-        st.image(COMPASS_GIF, width=200)
-        st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
+        st.session_state.page = "home"
     elif choice == "Quiz":
-        quiz_page()
+        st.session_state.page = "quiz"
+    elif choice == "Explore":
+        st.session_state.page = "explore"
     elif choice == "Careers":
-        career_page()
+        st.session_state.page = "career"
     elif choice == "Colleges":
-        college_page()
+        st.session_state.page = "colleges"
+    elif choice == "Profile":
+        st.session_state.page = "profile"
     elif choice == "About Us":
-        about_page()
+        st.session_state.page = "about"
     elif choice == "Logout":
         st.session_state.page = "login"
         st.session_state.user = None
@@ -141,14 +195,19 @@ def home_page():
 # -------------------------------------------------
 def quiz_page():
     st.header("🎯 Career Quiz")
-    q_num = len(st.session_state.quiz_answers)
-    if q_num < len(QUIZ_QUESTIONS):
-        q = QUIZ_QUESTIONS[q_num]
+    if st.button("Retake Quiz"):
+        st.session_state.quiz_answers = []
+        st.session_state.quiz_index = 0
+
+    if st.session_state.quiz_index < len(QUIZ_QUESTIONS):
+        q = QUIZ_QUESTIONS[st.session_state.quiz_index]
         st.write(q["q"])
-        choice = st.radio("Select:", q["options"], key=f"q{q_num}")
-        if st.button("Next"):
-            st.session_state.quiz_answers.append(choice)
-            st.rerun()
+        choice = st.radio("Select:", q["options"], key=f"q{st.session_state.quiz_index}")
+        if st.button("Next Question"):
+            if choice:
+                st.session_state.quiz_answers.append(choice)
+                st.session_state.quiz_index += 1
+                st.experimental_rerun = lambda : None  # prevent rerun
     else:
         st.success("✅ Quiz Completed!")
         suggested = []
@@ -156,10 +215,31 @@ def quiz_page():
             role = QUIZ_QUESTIONS[i]["career_map"].get(ans)
             if role:
                 suggested.append(role)
+        suggested = list(set(suggested))
         st.subheader("Your suggested careers:")
-        for role in set(suggested):
+        for role in suggested:
             st.write(f"- {role}")
-        st.info("👉 Go to Careers tab for detailed roadmaps.")
+            if role in CAREER_ROADMAPS:
+                st.subheader(f"📌 {role} Roadmap:")
+                for step in CAREER_ROADMAPS[role]:
+                    st.write(f"- {step}")
+
+# -------------------------------------------------
+# EXPLORE PAGE
+# -------------------------------------------------
+def explore_page():
+    st.header("🔎 Explore Careers")
+    career = st.selectbox("Select Career", list(CAREER_ROADMAPS.keys()))
+    if career:
+        st.subheader("Description:")
+        st.write(CAREER_DESCRIPTIONS.get(career, "No description available"))
+        st.subheader("Roadmap:")
+        for step in CAREER_ROADMAPS.get(career, []):
+            st.write(f"- {step}")
+        st.subheader("Courses & Colleges:")
+        df = load_colleges()
+        df_courses = df[df["Course"].str.contains(career, case=False, na=False)]
+        st.dataframe(df_courses[["College", "Course", "Website"]])
 
 # -------------------------------------------------
 # CAREERS PAGE
@@ -182,7 +262,7 @@ def career_page():
                     st.write(f"- {step}")
 
 # -------------------------------------------------
-# COLLEGE PAGE
+# COLLEGES PAGE
 # -------------------------------------------------
 def college_page():
     st.header("🎓 Government Colleges in J&K")
@@ -190,10 +270,38 @@ def college_page():
     if df.empty:
         st.error("No college data found. Please upload dataset.")
         return
-    search = st.text_input("Search by Course")
-    if search:
-        df = df[df["Course"].str.contains(search, case=False, na=False)]
-    st.dataframe(df, use_container_width=True)
+    search_type = st.radio("Search by:", ["Course", "College"])
+    search = st.text_input("Search")
+    if search_type == "Course" and search:
+        filtered = df[df["Course"].str.contains(search, case=False, na=False)]
+        st.dataframe(filtered[["College", "Course", "Website"]])
+    elif search_type == "College" and search:
+        filtered = df[df["College"].str.contains(search, case=False, na=False)]
+        col_selected = st.selectbox("Select College", filtered["College"])
+        if col_selected:
+            selected = filtered[filtered["College"] == col_selected].iloc[0]
+            st.write(f"**Website:** {selected['Website']}")
+            st.write(f"**Courses Offered:** {selected['Course']}")
+
+# -------------------------------------------------
+# PROFILE PAGE
+# -------------------------------------------------
+def profile_page():
+    st.header("👤 Profile")
+    user = st.session_state.user
+    st.image(user["avatar"], width=120)
+    name = st.text_input("Full Name", user["name"])
+    age = st.number_input("Age", value=int(user["age"]))
+    gender = st.selectbox("Gender", ["Male", "Female", "Other"], index=["Male","Female","Other"].index(user["gender"]))
+    city = st.text_input("City", user["city"])
+    state = st.text_input("State", user["state"])
+    education = st.text_input("Education", user["education"])
+    if st.button("Save Profile"):
+        df = load_users()
+        df.loc[df["email"] == user["email"], ["name","age","gender","city","state","education"]] = [name, age, gender, city, state, education]
+        save_users(df)
+        st.success("Profile updated ✅")
+        st.session_state.user.update({"name":name,"age":age,"gender":gender,"city":city,"state":state,"education":education})
 
 # -------------------------------------------------
 # ABOUT US
@@ -215,3 +323,15 @@ elif st.session_state.page == "profile_setup":
     profile_setup_page()
 elif st.session_state.page == "home":
     home_page()
+elif st.session_state.page == "quiz":
+    quiz_page()
+elif st.session_state.page == "career":
+    career_page()
+elif st.session_state.page == "colleges":
+    college_page()
+elif st.session_state.page == "profile":
+    profile_page()
+elif st.session_state.page == "explore":
+    explore_page()
+elif st.session_state.page == "about":
+    about_page()
