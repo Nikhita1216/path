@@ -168,8 +168,8 @@ if "notifications" not in st.session_state:
 def top_header():
     st.markdown("""
         <div style="display:flex;align-items:center;gap:12px">
-            <div style="font-size:28px;font-weight:700;color:#333">Career Compass</div>
-            <div style="color:#7a6cff">Your personalized guide — focused on Jammu & Kashmir government colleges</div>
+            <div style="font-size:30px;font-weight:700;color:#333">Career Compass</div>
+            <div style="color:#7a6cff">Your personalized guide </div>
         </div>
         """, unsafe_allow_html=True)
 
