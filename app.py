@@ -184,16 +184,26 @@ def home_page():
 # -------------------------------------------------
 def sidebar():
     st.sidebar.title(f"Welcome, {st.session_state.user['name']}")
-    
+
+    # Avatar display
     avatar_path = st.session_state.user.get("avatar")
     if avatar_path and os.path.exists(avatar_path):
         st.sidebar.image(avatar_path, width=80)
     else:
         st.sidebar.image("images/avatar2.png", width=80)  # fallback avatar
 
-    choice = st.sidebar.radio("📍 Navigate", ["Home", "Quiz", "Careers", "Colleges", "Explore", "Profile", "About Us", "Logout"])
-    
-    # Set page state based on choice
+    # Persistent radio menu using session_state
+    if "sidebar_choice" not in st.session_state:
+        st.session_state.sidebar_choice = "Home"
+
+    st.session_state.sidebar_choice = st.sidebar.radio(
+        "📍 Navigate",
+        ["Home", "Quiz", "Careers", "Colleges", "Explore", "Profile", "About Us", "Logout"],
+        index=["Home", "Quiz", "Careers", "Colleges", "Explore", "Profile", "About Us", "Logout"].index(st.session_state.sidebar_choice)
+    )
+
+    # Update page without rerun
+    choice = st.session_state.sidebar_choice
     if choice == "Home":
         st.session_state.page = "home"
     elif choice == "Quiz":
@@ -211,6 +221,7 @@ def sidebar():
     elif choice == "Logout":
         st.session_state.page = "login"
         st.session_state.user = None
+
 
 
 # -------------------------------------------------
