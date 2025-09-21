@@ -84,7 +84,7 @@ def get_user(email, password=None):
 # -------------------------------
 # Display compass animation
 def display_compass():
-    st.image(COMPASS_GIF_PATH, width=100, caption="Career Compass 🌟")
+    st.image(COMPASS_GIF_PATH, width=200, caption="Career Compass 🌟")
 
 # -------------------------------
 # Career roadmap
