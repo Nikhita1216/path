@@ -137,7 +137,7 @@ if 'quiz_answers' not in st.session_state:
 # -------------------------------
 # Login / Signup
 if not st.session_state['logged_in']:
-    st.title("Career Compass Login / Signup")
+    st.title("Career Compass ")
     choice = st.radio("Choose", ["Login", "Sign Up"])
     
     if choice == "Login":
