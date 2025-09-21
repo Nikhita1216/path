@@ -4,11 +4,11 @@ import pandas as pd
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import io
-
+import os
 # ---------------------------
 # Configuration / Paths
 # ---------------------------
-st.set_page_config(title="Career Compass", layout="wide")
+st.set_page_config(page_title="Career Compass",page_icon="🧭", layout="wide")
 BASE = Path(".")
 IMAGES_DIRS = [BASE / "images", BASE / "avatars"]
 COLLEGES_PATHS = [BASE / "jk_colleges.csv", Path("/mnt/data/jk_colleges.csv")]
