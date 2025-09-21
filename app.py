@@ -197,7 +197,7 @@ def sidebar():
         st.session_state.sidebar_choice = "Home"
 
     st.session_state.sidebar_choice = st.sidebar.radio(
-        "📍 Navigate",
+        "📍 Compass",
         ["Home", "Quiz", "Careers", "Colleges", "Explore", "Profile", "About Us", "Logout"],
         index=["Home", "Quiz", "Careers", "Colleges", "Explore", "Profile", "About Us", "Logout"].index(st.session_state.sidebar_choice)
     )
