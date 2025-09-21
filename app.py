@@ -308,13 +308,7 @@ def about_page():
 # -----------------------------
 # CSV DATASET INSTRUCTIONS
 # -----------------------------
-st.sidebar.markdown("""
-**📄 College Dataset Instructions**
-- Include columns: `College`, `Website`, `Courses`
-- For multiple courses, wrap in quotes: `"B.Tech CSE, B.Tech ECE, B.Tech ME"`
-- Example row:
-`NIT Srinagar,https://nitj.ac.in,"B.Tech CSE, B.Tech ECE, B.Tech ME"`
-""")
+#st.sidebar.markdown
 
 # -----------------------------
 # MAIN ROUTER
