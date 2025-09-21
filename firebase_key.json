@@ -1,1 +1,11 @@
-
+ "type": "service_account",
+  "project_id": "career-compass-ef7da",
+  "private_key_id": "7d0bae13988790b84879ff2771a6782e82819077",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCi+TMmGx2bqO+v\nCDqIl1l4HLgHjxExrNPbW9oRoiLw80Tl6/w22WG4QjSzmd3ABUbpdeZrpQ+Uue2v\nlX1xXwK1U00jH1anZB1Y4VXfFrU2FYEwTdt0a2bk1ovtjFumgWCSC2maYOrvdr3Y\nyhrLU0fi3wSRz5BE5PgLIcnFvh58DLjqfNtV0fuSgdNOrtg+uq1p6ggNb2Xi2PKL\nisOAtRYM1ULPMZJoqdKg7K4AicqFyncUFC8Ze72m27IPiI3BuonolaXJJ/g+7cDk\nRJcLOUQRBJQ7qOxKw+z98PbRsdFuPQAYXm0yAytUFK6Vzg/gP68qPCdO9aUXnYQa\n0I2tK+LBAgMBAAECggEADTYSVWZ2p1BcjbMnEOeOqH6mKcaz6B5QgO8YkGa1BRSo\nuH1sJq4cjn6fcxJoDXw1XBDjVZqTLBqeZVDC/dZr4R3C77Px/Fkl9Tc0ai9Buq6n\nmFjXZL/yyV4zCFYLypr2TyB/C7Vg63npYzzkSyiRzUGy8cxXr54NatREXQlPw1J2\nPe7I6BCF2N263jbDvcuG3bVWNf1s5yI0OHEhjx1rWEf7GocfrjtzC6ywZH04K5ig\nX1NnuNG9qqt7+iNorcsgyv+guAWPuqglMY+WjD+AcYhJfA1rosk98+NolixoJxSg\njnE1g4uFZVjJEthFTah9UdKlTNZGZ7oQgs+pa6thWQKBgQDQvt4L2oGqKbi1lAho\n//UN28Ic9VVNZoF65oSJwGNqguoVv9aeutXmMDpIhgEOHeNiqqi8WEqixFyi5UyK\nqnLGSH5X1pfwZ/ybyLS7uPqnEmb56v2ybafgZWLa0AKsC3Yzk8zo8gqTaH7QOk8b\nqPYx4XdT2QY6wYAM3ab5xSDivwKBgQDH3cPwJLvPjzoUIGf0X8yP+sqJTrsoKurB\n0jDCI9Nd2BPwg1BPAgD2/LVIzIjVKqrIma5xCo7SIpfsrnTNCCB60z68HocMOute\nqCIVBlUAuTEJi7v6V/m8naEi5r+DiQgHcmWzb8EqXbcIbRl/ai6mhFyHKGg9bSAv\nVZGV7iwafwKBgHfQFcLX9/SjXdFa1jjuMMlziUb1ybBTVZ4lEY2/T1CjM5ioM5eH\nxZ4JsGpP/+sKXKkVKyRvyOcDregRlI1Cp/4HPf1MvojOJr+Dw7i7w6KBfXmU12jC\nZ8j0aHkPS3lUWtPf0Y0i388b+y2pSh6mLCkVMFiACINQ7R51WpGiA+4hAoGAWGN7\nvp0QLeeigLogHxOqzNXVcknOPSJVtae2BnV/iVYA43G/N2GkeZYiufIyZUs8QgCt\nA7LunIHN/E7eurnoW0lGyj0Z7k+0PaVPhUrKlspPpHAWjs0PVdnEJEI12f7k/R4b\nWfKHU6wkQOa2ywFzZhLNNLyq9Ndoz2YhP1QYTxMCgYEAhBFadrPMwTVvJGzwOY8R\nlKmwb4oGWL9Iq5ioe70SUZzYu+Db9/kPFHXbPQfl4I7AtqXbFRk45GaBYCkb8wlQ\neR0CvFpiD8bJ3DTAhHyPekEOqdwQ2aQRloEgN5kxz/tOCpdAY7o1Uy5VT+T7yEaU\nbT1Yg8OjoWk6CqaYed4PER0=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@career-compass-ef7da.iam.gserviceaccount.com",
+  "client_id": "101291409081137069138",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40career-compass-ef7da.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
