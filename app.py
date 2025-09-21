@@ -15,49 +15,46 @@ USER_DATA_CSV = "users.csv"
 
 # -------------------------------
 # Streamlit CSS for pastel UI, cards, buttons
-st.markdown(
-    """
-    <style>
-    /* Background & font */
-    .main {
-        background-color: #fef6f0;
-        color: #333333;
-    }
-    /* Sidebar */
-    .css-1d391kg {
-        background-color: #f8eaf6;
-    }
-    /* Buttons */
-    div.stButton > button {
-        background-color: #ffd6f0;
-        color: #333;
-        border-radius: 12px;
-        padding: 8px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        transition: transform 0.2s;
-    }
-    div.stButton > button:hover {
-        transform: scale(1.05);
-        box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
-    }
-    /* Cards */
-    .card {
-        background-color: #fff1f3;
-        border-radius: 12px;
-        padding: 15px;
-        margin: 10px 0;
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
-        transition: transform 0.2s;
-    }
-    .card:hover {
-        transform: scale(1.02);
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.15);
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("""
+<style>
+/* Background & font */
+.main {
+    background-color: #fef6f0;
+    color: #333333;
+}
+/* Sidebar */
+.css-1d391kg {
+    background-color: #f8eaf6;
+}
+/* Buttons */
+div.stButton > button {
+    background-color: #ffd6f0;
+    color: #333;
+    border-radius: 12px;
+    padding: 8px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    transition: transform 0.2s;
+}
+div.stButton > button:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+}
+/* Cards */
+.card {
+    background-color: #fff1f3;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: scale(1.02);
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.15);
+}
+</style>
+""", unsafe_allow_html=True)
 
 # -------------------------------
 # Load colleges
@@ -85,7 +82,7 @@ def get_user(email, password=None):
         else:
             user = df[(df['email'] == email)]
         if not user.empty:
-            return user.iloc[0]
+            return user.iloc[0].to_dict()
         else:
             return None
     except FileNotFoundError:
@@ -217,90 +214,41 @@ if st.session_state['logged_in']:
         st.title("Career Path Quiz")
         st.write("Answer questions to discover your optimal career paths!")
 
-        interests = st.multiselect("Select your interests", ["Science","Commerce","Arts","Sports","Culinary","Business","Technology","Defense Services","Creative Arts"])
-        personality = st.radio("Do you prefer structured or creative work?", ["Structured","Creative","Both"])
-        work_style = st.radio("Teamwork or Solo work?", ["Teamwork","Solo","Both"])
-        if st.button("Get Suggested Careers"):
-            results=[]
-            if "Science" in interests: results+=["Doctor","Engineer","Scientist"]
-            if "Commerce" in interests: results+=["Accountant","Business Analyst","Economist"]
-            if "Arts" in interests: results+=["Writer","Designer","Teacher"]
-            if "Sports" in interests: results+=["Athlete","Coach","Physiotherapist"]
-            if "Culinary" in interests: results+=["Chef","Food Entrepreneur"]
-            if "Defense Services" in interests: results+=["Army Officer","Navy Officer","Airforce Officer"]
-            if "Creative Arts" in interests: results+=["Actor","Musician","Graphic Designer"]
+        interests = st.multiselect("Select your interests", ["Science","Arts","Commerce","Sports","Technology","Writing","Design","Cooking","Defence"])
+        skills = st.multiselect("Select your skills", ["Analytical","Creative","Physical","Communication","Management","Technical"])
+        if st.button("Submit Quiz"):
+            st.session_state['quiz_results'] = interests + skills
+            st.success("Quiz submitted! Check Your Paths menu for results.")
+            st.session_state['quiz'] = False
 
-            st.session_state['quiz_results']=list(set(results))
-            # Save to user paths
-            paths=user.get('your_paths',"")
-            for c in st.session_state['quiz_results']:
-                if paths: paths+=f";{c}"
-                else: paths=c
-            user['your_paths']=paths
-            save_user_data(user)
-            st.success("Suggested careers saved to 'Your Paths'")
-            st.session_state['quiz']=False
-
-    # YOUR PATHS
+    # CAREER PATHS
     elif menu=="Your Paths":
-        st.title("Your Saved Career Paths")
-        paths=user.get('your_paths',"")
-        if paths:
-            paths_list=paths.split(";")
-            df=load_colleges()
-            for career in paths_list:
-                st.markdown(f'<div class="card"><h4>{career}</h4></div>', unsafe_allow_html=True)
-                display_roadmap(career)
-                filtered=df[df['Course'].str.contains(career.split()[0],case=False,na=False)]
-                if not filtered.empty:
-                    for idx,row in filtered.iterrows():
-                        st.markdown(f"""
-                        <div class="card">
-                            <h5>{row['College']} ({row['Location']})</h5>
-                            <p><b>Future Scope:</b> {row['Future_Scope']}</p>
-                            <p><b>Study Material:</b> <a href="{row['Study_Materials']}" target="_blank">Link</a></p>
-                            <p><b>Exam Info:</b> {row['Exam_Info']}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+        st.title("Your Suggested Career Paths")
+        if st.session_state['quiz_results']:
+            paths = st.session_state['quiz_results'][:5]
+            for path in paths:
+                st.markdown(f'<div class="card">{path}</div>', unsafe_allow_html=True)
         else:
-            st.info("No paths saved yet!")
+            st.info("Take the quiz first from Home menu.")
 
-    # CAREER PAGE
+    # CAREER ROADMAP
     elif menu=="Career":
-        st.title("Career Explorer")
-        df=load_colleges()
-        career_filter=st.selectbox("Filter by Career/Subject", df['Course'].unique())
-        filtered=df[df['Course']==career_filter]
-        for idx,row in filtered.iterrows():
-            st.markdown(f"""
-            <div class="card">
-                <h4>{row['College']} | {row['Course']} | {row['Location']}</h4>
-                <p><b>Future Scope:</b> {row['Future_Scope']}</p>
-                <p><b>Study Material:</b> <a href="{row['Study_Materials']}" target="_blank">Link</a></p>
-                <p><b>Exam Info:</b> {row['Exam_Info']}</p>
-            </div>
-            """, unsafe_allow_html=True)
+        st.title("Explore Career Roadmaps")
+        career = st.selectbox("Choose a career", ["Doctor","Engineer","Scientist","Accountant","Business Analyst","Economist","Writer","Designer","Teacher","Chef","Food Entrepreneur","Athlete","Coach","Physiotherapist","Army Officer","Navy Officer","Airforce Officer"])
+        display_roadmap(career)
 
-    # NOTIFICATIONS
+    # NOTIFICATIONS / Colleges
     elif menu=="Notifications":
-        st.title("Notifications")
-        st.info("Get updates about your paths here (future enhancement: automated notifications)")
+        st.title("Government Colleges in J&K")
+        df = load_colleges()
+        st.dataframe(df)
 
     # ABOUT US
     elif menu=="About Us":
         st.title("About Career Compass")
         st.write("""
-               Career Compass is a digital guidance platform for students in Jammu & Kashmir
-               to make informed academic decisions, choose courses and colleges, and explore career paths.
-              It empowers students to unlock their future through personalized recommendations.
-         """)
-
-         st.markdown("---")
-         st.subheader("Contact Information")
-         st.markdown("""
-             - **Email:** support@careercompass.in  
-             - **Phone:** +91 98765 43210  
-             - **Website:** [www.careercompass.in](http://www.careercompass.in)  
-             - **Address:** 123 Education Lane, Srinagar, Jammu & Kashmir, India
-         """)
-
+        Career Compass is your AI-powered assistant to help explore career paths, education options, and colleges in Jammu & Kashmir.
+        """)
+        st.subheader("Contact us:")
+        st.write("Email: support@careercompass.com")
+        st.write("Phone: +91-9876543210")
