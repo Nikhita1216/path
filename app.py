@@ -1,161 +1,114 @@
 import streamlit as st
-import json
-import os
-from datetime import date
-import modules.auth as auth
-import modules.roadmap as roadmap
+import pandas as pd
+import plotly.express as px
+import firebase_admin
+from firebase_admin import credentials, auth
+from PIL import Image
 
-# 🔹 Tailwind injection
-st.markdown("""
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-""", unsafe_allow_html=True)
+# Initialize Firebase
+cred = credentials.Certificate("firebase_key.json")
+firebase_admin.initialize_app(cred)
 
-# Load career DB
-DATA_PATH = os.path.join("data","career_tree.json")
-with open(DATA_PATH, "r", encoding="utf-8") as f:
-    DATA = json.load(f)
+# Load dataset
+df_colleges = pd.read_csv("jk_colleges.csv")
 
-# Daily affirmation
-def daily_affirmation():
-    affirmations = [
-        "🌟 You are capable of amazing things.",
-        "🚀 Small steps every day lead to big changes.",
-        "💡 Believe in yourself and your potential.",
-        "🌱 Curiosity is your superpower — explore.",
-        "🔥 Every attempt is progress."
-    ]
-    idx = date.today().toordinal() % len(affirmations)
-    return affirmations[idx]
+# Page configuration
+st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
-# ---------------- Authentication ----------------
-if "user" not in st.session_state:
-    st.session_state.user = None
+# Sidebar navigation
+st.sidebar.title("Career Compass")
+menu = ["Home", "Login/Signup", "Profile", "Quiz", "Careers", "Notifications", "About Us"]
+choice = st.sidebar.radio("Navigate", menu)
 
-if not st.session_state.user:
-    st.markdown("""
-    <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-2xl shadow-lg text-center">
-      <h1 class="text-4xl font-bold mb-4">Career Compass</h1>
-      <p class="text-lg">Your personalized career & education advisor 🚀</p>
-    </div>
-    """, unsafe_allow_html=True)
+if choice == "Home":
+    st.markdown("# Career Compass 🧭")
+    st.image("images/compass.gif", width=200)
+    st.markdown("> Education shapes your future. Make informed choices!")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Take Quiz"):
+            st.session_state.page = "quiz"
+    with col2:
+        if st.button("Explore Careers"):
+            st.session_state.page = "careers"
 
-    st.write("---")
-    st.subheader("✨ Login / Sign Up")
+elif choice == "Login/Signup":
+    st.header("Login or Signup")
+    auth_action = st.radio("Choose action", ["Login", "Signup"])
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+    if auth_action == "Signup":
+        if st.button("Create Account"):
+            try:
+                user = auth.create_user(email=email, password=password)
+                st.success("Account created! Verify email via Firebase Console.")
+            except Exception as e:
+                st.error(str(e))
+    elif auth_action == "Login":
+        st.info("Firebase auth verification placeholder for demo.")
 
-    # 🔹 Anime-style Visme form
-    st.markdown("""
-    <div class="visme_d"
-         data-title="Webinar Registration Form"
-         data-url="g7ddqxx0-untitled-project?fullPage=true"
-         data-domain="forms"
-         data-full-page="true"
-         data-min-height="70vh"
-         data-form-id="133190">
-    </div>
-    <script src="https://static-b-assets.visme.co/forms/vismeforms-embed.js"></script>
-    """, unsafe_allow_html=True)
+    st.markdown("[Forgot Password?](#)")
 
-    st.info("➡️ For hackathon demo, skip Visme login & press 'Demo Login' below.")
-    if st.button("Demo Login"):
-        st.session_state.user = {"name":"HackathonUser","email":"demo@sih.com"}
-        st.success("Logged in as Demo User ✅")
-        st.rerun()
+elif choice == "Profile":
+    st.header("Your Profile")
+    name = st.text_input("Name")
+    age = st.number_input("Age", 10, 100)
+    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
+    location = st.text_input("Location")
+    studying = st.selectbox("Currently Studying", ["Schooling", "Intermediate/Diploma", "BSc/BTech/BCom"])
+    avatar = st.selectbox("Choose Avatar", ["avatar1.png", "avatar2.png", "avatar3.png"])
+    if st.button("Save Profile"):
+        st.success("Profile saved successfully!")
+    if st.button("Logout"):
+        st.success("Logged out!")
 
-else:
-    # ---------------- Dashboard ----------------
-    user = st.session_state.user
-
-    st.markdown(f"""
-    <div class="bg-gradient-to-r from-green-400 to-blue-500 text-white p-6 rounded-2xl shadow-lg mb-4">
-      <h2 class="text-2xl font-bold">👋 Welcome, {user['name']}</h2>
-      <p>{daily_affirmation()}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Menu
-    menu = st.sidebar.radio("📍 Navigate", ["Home","Quiz","Roadmap","About","Logout"])
-
-    if menu=="Logout":
-        st.session_state.user = None
-        st.experimental_rerun()
-
-    # ---------------- Home ----------------
-    if menu=="Home":
-        st.header("🏠 Home")
-
-        # Search Section
-        st.markdown("""
-        <div class="bg-white p-4 rounded-xl shadow-md mb-4">
-          <h3 class="text-xl font-bold">🔎 Search</h3>
-        </div>
-        """, unsafe_allow_html=True)
-
-        search_text = st.text_input("Free Search (College / Course / Career)")
-        filter_type = st.selectbox("Filter by", ["Select","College","Course","Career"])
-
-        if st.button("Search"):
-            if filter_type=="College":
-                names = [c["name"] for c in DATA["colleges"]]
-                st.write("Colleges:", names)
-            elif filter_type=="Course":
-                st.write("Courses across colleges:")
-                for c in DATA["colleges"]:
-                    for cr in c["courses"]:
-                        if search_text.lower() in cr.lower():
-                            st.write(f"- {cr} ({c['name']})")
-            elif filter_type=="Career":
-                if search_text in DATA["careers"]:
-                    roadmap.show_roadmap(search_text)
-                else:
-                    st.error("Career not found in demo dataset")
-
-        st.markdown("---")
-        st.subheader("📢 Notifications")
-        for n in DATA["notifications"]:
-            st.info(n["msg"])
-
-    # ---------------- Quiz ----------------
-    if menu=="Quiz":
-        st.header("🎯 Career Quiz")
-
-        quiz_tree = {
-            "Q1": {"q":"What are your main interests?",
-                   "options":["Photography","Culinary","Engineering","Medicine"]},
-            "Q2-Photography": {"q":"Do you prefer studio editing or outdoor shooting?",
-                               "options":["Editing","Outdoor"]},
-            "Q2-Culinary": {"q":"Do you enjoy baking, cooking, or management?",
-                            "options":["Baking","Cooking","Management"]}
+elif choice == "Quiz" or ('page' in st.session_state and st.session_state.page == "quiz"):
+    st.header("Career Quiz")
+    interests = st.multiselect("Select your interests", ["Science", "Commerce", "Arts", "Sports", "Culinary", "Defense"])
+    personality = st.radio("Personality type:", ["Analytical", "Creative", "Practical"])
+    if st.button("Get Suggested Careers"):
+        st.write("### Suggested Careers:")
+        career_map = {
+            "Science": ["Scientist", "Engineer", "Doctor"],
+            "Commerce": ["Accountant", "Banker", "Entrepreneur"],
+            "Arts": ["Teacher", "Historian", "Journalist"],
+            "Sports": ["Athlete", "Coach"],
+            "Culinary": ["Chef", "Food Blogger"],
+            "Defense": ["Army", "Navy", "Air Force"]
         }
+        suggested = []
+        for interest in interests:
+            suggested += career_map.get(interest, [])
+        for c in suggested:
+            st.write(f"- {c}")
 
-        if "quiz_step" not in st.session_state:
-            st.session_state.quiz_step = "Q1"
-            st.session_state.answers = []
-            st.session_state.quiz_result = None
+        st.write("### Colleges for Your Interests:")
+        for interest in interests:
+            st.subheader(f"{interest} Stream Colleges")
+            df_filtered = df_colleges[df_colleges["Stream"] == interest]
+            st.dataframe(df_filtered)
 
-        node = quiz_tree[st.session_state.quiz_step]
-        choice = st.radio(node["q"], node["options"], key=st.session_state.quiz_step)
+        st.write("### Career Roadmap:")
+        fig = px.timeline(df_colleges, x_start="Duration", x_end="Duration", y="Course Name", color="Stream")
+        st.plotly_chart(fig)
 
-        if st.button("Next Question"):
-            st.session_state.answers.append(choice)
-            next_key = f"Q2-{choice}"
-            if next_key in quiz_tree:
-                st.session_state.quiz_step = next_key
-            else:
-                st.session_state.quiz_result = choice
-                st.success(f"✅ Based on your answers, we suggest: **{choice}**")
+elif choice == "Careers" or ('page' in st.session_state and st.session_state.page == "careers"):
+    st.header("Explore Careers & Colleges")
+    career_filter = st.multiselect("Filter careers:", ["Science", "Commerce", "Arts", "Sports", "Culinary", "Defense"])
+    for career in career_filter:
+        st.subheader(f"{career} Careers")
+        colleges = df_colleges[df_colleges["Stream"] == career]
+        st.dataframe(colleges)
 
-        if st.session_state.quiz_result:
-            if st.button("View Roadmap"):
-                roadmap.show_roadmap(st.session_state.quiz_result)
+elif choice == "Notifications":
+    st.header("Notifications")
+    st.write("No new notifications yet!")
 
-    # ---------------- Roadmap ----------------
-    if menu=="Roadmap":
-        st.header("🛤 Career Roadmap")
-        career = st.text_input("Enter a career to view roadmap", "Culinary")
-        if st.button("Show Roadmap"):
-            roadmap.show_roadmap(career)
+elif choice == "About Us":
+    st.header("About Career Compass")
+    st.write("""
+    Career Compass is a personalized guidance platform for students in Jammu & Kashmir.
+    It helps students choose courses, find government colleges, explore career paths,
+    and plan their academic journey effectively.
+    """)
 
-    # ---------------- About ----------------
-    if menu=="About":
-        st.header("ℹ️ About")
-        st.write("Prototype for SIH Hackathon — Personalized Career & Education Advisor.")
