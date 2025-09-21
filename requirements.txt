@@ -1,4 +1,6 @@
 streamlit
+firebase-admin
 pandas
-numpy
-scikit-learn
+plotly
+Pillow
+
