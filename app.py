@@ -280,7 +280,7 @@ with st.sidebar:
 
     st.markdown("---")
     
-    selection = st.radio("", ["Profile","Home","Quiz","Suggested Careers","Colleges","Notifications","About Us"], index=["Profile","Home","Quiz","Your paths","Explore","Notifications","About Us"].index(st.session_state.menu))
+    selection = st.radio("", ["Profile","Home","Quiz","Suggested Careers","Colleges","Notifications","About Us"], index=["Profile","Home","Quiz","Suggested Careers","Colleges","Notifications","About Us"].index(st.session_state.menu))
     st.session_state.menu = selection
 
 # -------------------------
