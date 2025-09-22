@@ -5,6 +5,7 @@ import os
 import requests
 import random
 
+
 # ----------------------------- CONFIG -----------------------------
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
@@ -136,31 +137,59 @@ def recommend(scores):
     return major, minor, backup
 
 # ----------------------------- NEWS FUNCTION -----------------------------
-def fetch_relevant_news(interests, page_size=5):
-    news_items = []
-    for interest in interests:
-        params = {
-            'q': interest,
-            'apiKey': NEWS_API_KEY,
-            'pageSize': page_size,
-            'sortBy': 'publishedAt',
-            'language': 'en'
-        }
-        try:
-            response = requests.get(NEWS_BASE_URL, params=params)
-            if response.status_code == 200:
-                data = response.json()
-                for article in data.get('articles', []):
-                    news_items.append({
-                        'title': article['title'],
-                        'description': article['description'] or "No description",
-                        'url': article['url'],
-                        'source': article['source']['name'],
-                        'publishedAt': article['publishedAt'].split("T")[0]
-                    })
-        except:
-            pass
-    return news_items
+# Replace your old function with this
+def fetch_relevant_news(stream, interests, days=21, page_size=50, max_items=30):
+    from datetime import datetime, timedelta
+    from_date = (datetime.utcnow() - timedelta(days=days)).date().isoformat()
+
+    # Keywords and domains
+    query = build_query_terms(interests)
+    whitelist = ",".join(STREAM_DOMAINS.get(stream, [])) or None
+    exclude = ",".join(EXCLUDE)
+
+    params = {
+        "q": query,
+        "searchIn": "title,description",
+        "sortBy": "relevancy",
+        "language": "en",
+        "from": from_date,
+        "pageSize": page_size,
+        "apiKey": API_KEY
+    }
+
+    if whitelist:
+        params["domains"] = whitelist
+    if exclude:
+        params["excludeDomains"] = exclude
+
+    r = requests.get(BASE_URL, params=params, timeout=20)
+    r.raise_for_status()
+    data = r.json()
+    articles = data.get("articles", [])
+
+    # Post-filter and score
+    keywords = [k.lower() for k in interests]
+    scored = []
+    for a in articles:
+        title = (a.get("title") or "").lower()
+        desc = (a.get("description") or "").lower()
+        text = title + " " + desc
+        hits = sum(1 for k in keywords if k in text)
+        if hits == 0:
+            continue
+        title_hits = sum(1 for k in keywords if k in title)
+        score = hits + 0.5 * title_hits
+        scored.append((score, {
+            "title": a.get("title"),
+            "description": a.get("description"),
+            "url": a.get("url"),
+            "source": (a.get("source") or {}).get("name"),
+            "publishedAt": a.get("publishedAt").split("T")[0] if a.get("publishedAt") else None
+        }))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [item for _, item in scored[:max_items]]
+
 
 # ----------------------------- LOGIN / SIGNUP PAGE -----------------------------
 def login_page():
