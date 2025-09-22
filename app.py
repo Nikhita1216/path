@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-from graphviz import Digraph
+import graphviz
+from io import BytesIO
 
 # -----------------------------
 # CONFIG
@@ -12,237 +13,215 @@ st.set_page_config(page_title="Career Compass", layout="wide")
 USERS_CSV = "users.csv"
 COLLEGES_CSV = "jk_colleges.csv"
 AVATAR_FOLDER = "images"
-QUESTIONS_JSON = "career_questions.json"
+QUIZ_JSON = "career_questions.json"
 
 # -----------------------------
 # LOAD DATA
 # -----------------------------
 def load_users():
     if os.path.exists(USERS_CSV):
-        return pd.read_csv(USERS_CSV)
-    else:
-        df = pd.DataFrame(columns=["username","password","fullname","gender","avatar"])
-        df.to_csv(USERS_CSV, index=False)
+        df = pd.read_csv(USERS_CSV)
+        df['your_paths'] = df['your_paths'].apply(lambda x: json.loads(x) if pd.notnull(x) else {})
         return df
+    else:
+        cols = ['name','email','password','age','gender','location','studying','avatar','your_paths']
+        return pd.DataFrame(columns=cols)
+
+def save_users(df):
+    df_copy = df.copy()
+    df_copy['your_paths'] = df_copy['your_paths'].apply(lambda x: json.dumps(x))
+    df_copy.to_csv(USERS_CSV,index=False)
 
 def load_colleges():
-    return pd.read_csv(COLLEGES_CSV)
+    if os.path.exists(COLLEGES_CSV):
+        return pd.read_csv(COLLEGES_CSV)
+    else:
+        return pd.DataFrame(columns=['College','Location','Website','Courses'])
 
-def load_questions():
-    with open(QUESTIONS_JSON,"r") as f:
+def load_quiz():
+    with open(QUIZ_JSON,'r') as f:
         return json.load(f)
 
-users_df = load_users()
-colleges_df = load_colleges()
-questions_data = load_questions()
-
 # -----------------------------
-# AUTHENTICATION
+# USER FUNCTIONS
 # -----------------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.user = None
+def signup(email,password,name,age,gender,location,studying,avatar_file):
+    users_df = load_users()
+    if email in users_df.email.values:
+        return False, "Email already exists"
+    users_df.loc[len(users_df)] = [name,email,password,age,gender,location,studying,avatar_file,{}]
+    save_users(users_df)
+    return True, "Signup successful"
 
-def login(username, password):
-    user = users_df[(users_df.username==username) & (users_df.password==password)]
+def login(email,password):
+    users_df = load_users()
+    user = users_df[(users_df.email==email)&(users_df.password==password)]
     if not user.empty:
-        return user.iloc[0].to_dict()
+        return user.iloc[0]
     return None
 
-def signup(username, password, fullname, gender):
-    global users_df
-    # Ensure required columns exist
-    required_cols = ["username","password","fullname","gender","avatar"]
-    for col in required_cols:
-        if col not in users_df.columns:
-            users_df[col] = ""
-
-    # Check if username exists
-    if username in users_df["username"].values:
-        return False
-
-    # Assign avatar based on gender
-    if gender=="Male":
-        avatar_file="male.png"
-    elif gender=="Female":
-        avatar_file="female.png"
-    else:
-        avatar_file="other.png"
-
-    # Append new user as a dictionary
-    new_row = {
-        "username": username,
-        "password": password,
-        "fullname": fullname,
-        "gender": gender,
-        "avatar": avatar_file
-    }
-
-    users_df = pd.concat([users_df, pd.DataFrame([new_row])], ignore_index=True)
-    users_df.to_csv(USERS_CSV,index=False)
-    return True
-
-
 # -----------------------------
-# SIDEBAR
-# -----------------------------
-def sidebar():
-    if st.session_state.logged_in:
-        st.sidebar.image(os.path.join(AVATAR_FOLDER, st.session_state.user["avatar"]), width=100)
-        st.sidebar.write(f"Hello, {st.session_state.user['fullname']}")
-        menu = st.sidebar.radio("Navigation", ["Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"])
-        return menu
-    return None
-
-menu = sidebar()
-
-# -----------------------------
-# UTILITY FUNCTIONS
+# QUIZ LOGIC
 # -----------------------------
 def calculate_scores(questions, answers):
     scores = {}
     for q, ans in zip(questions, answers):
         if ans in q["options"]:
             for stream, weight in q["options"][ans]["weights"].items():
-                scores[stream] = scores.get(stream,0) + weight
+                scores[stream] = scores.get(stream,0)+weight
     return scores
 
 def recommend(scores):
-    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    ranked = sorted(scores.items(), key=lambda x:x[1], reverse=True)
     major = ranked[0][0] if ranked else None
     minor = ranked[1][0] if len(ranked)>1 else None
     backup = ranked[2][0] if len(ranked)>2 else None
     return major, minor, backup
 
-# Canonical course mapping
-COURSE_SYNONYMS = {
-    "Software": ["Computer Science","Software Engineering","CSE"],
-    "AI": ["Artificial Intelligence","Machine Learning","AI & ML"],
-    "Mechanical": ["Mechanical Engineering"],
-    "CivilArch": ["Civil Engineering","Architecture"],
-    "Electrical": ["Electrical Engineering","EEE"],
-    "Biology": ["Biotechnology","Biology"],
-    "Physics": ["Physics"],
-    "Chemistry": ["Chemistry"],
-    "Medical": ["MBBS","Nursing","Paramedical","Nutrition"],
-    "Arts": ["Design","Fine Arts","Performing Arts"],
-    "Commerce": ["BBA","BCom","Economics"]
-}
+# -----------------------------
+# MAIN UI
+# -----------------------------
+st.title("🎯 Career Compass")
 
-def map_course_to_colleges(course):
-    synonyms = COURSE_SYNONYMS.get(course,[course])
-    matched = colleges_df[colleges_df['Courses'].apply(lambda x: any(s.lower() in x.lower() for s in synonyms))]
-    return matched
+# Sidebar
+menu = ["Home","Quiz","Your Paths","Explore Colleges","Notifications","About Us","Log Out"]
+choice = st.sidebar.selectbox("Menu", menu)
 
-def show_roadmap(major, sub_major):
-    dot = Digraph(comment='Career Roadmap', format='png')
-    dot.node('Start', 'You')
-    dot.node('Stream', major)
-    dot.node('Specialization', sub_major)
-    
-    # Courses offered
-    colleges = map_course_to_colleges(sub_major)
-    for idx,row in colleges.iterrows():
-        dot.node(f"{row['College']}", f"{row['College']}\n({row['Location']})")
-        dot.edge('Specialization', f"{row['College']}")
-    
-    dot.edge('Start','Stream')
-    dot.edge('Stream','Specialization')
-    st.graphviz_chart(dot)
+# Dummy session_state for login
+if "user" not in st.session_state:
+    st.session_state.user = None
 
 # -----------------------------
-# MAIN PAGES
+# HOME
 # -----------------------------
-if not st.session_state.logged_in:
-    st.title("🎯 Career Compass")
-    tab1, tab2 = st.tabs(["Login","Signup"])
-    with tab1:
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            user = login(username,password)
-            if user:
-                st.session_state.logged_in = True
+if choice=="Home":
+    st.header("Welcome to Career Compass!")
+    if st.session_state.user:
+        st.success(f"Hello {st.session_state.user['name']}!")
+    else:
+        st.info("Please log in from the sidebar.")
+
+# -----------------------------
+# SIGNUP / LOGIN
+# -----------------------------
+if st.session_state.user is None:
+    st.sidebar.subheader("Login / Signup")
+    login_option = st.sidebar.radio("Option",["Login","Sign Up"])
+
+    if login_option=="Login":
+        email = st.sidebar.text_input("Email")
+        password = st.sidebar.text_input("Password",type="password")
+        if st.sidebar.button("Login"):
+            user = login(email,password)
+            if user is not None:
                 st.session_state.user = user
-                st.success(f"Welcome, {user['fullname']}!")
-                st.experimental_rerun()
+                st.success("Logged in successfully!")
             else:
-                st.error("Invalid credentials!")
-    with tab2:
-        new_username = st.text_input("New Username", key="new_user")
-        new_password = st.text_input("Password", type="password", key="new_pass")
-        fullname = st.text_input("Full Name")
-        gender = st.radio("Gender", ["Male","Female","Other"])
-        if st.button("Signup"):
-            success = signup(new_username,new_password,fullname,gender)
+                st.error("Invalid credentials")
+
+    else: # Sign Up
+        st.sidebar.subheader("Sign Up")
+        name = st.sidebar.text_input("Full Name")
+        age = st.sidebar.number_input("Age",min_value=10,max_value=100)
+        gender = st.sidebar.selectbox("Gender",["Male","Female","Other"])
+        location = st.sidebar.text_input("City")
+        studying = st.sidebar.text_input("Education / Currently Studying")
+        email = st.sidebar.text_input("Email")
+        password = st.sidebar.text_input("Password",type="password")
+        if st.sidebar.button("Sign Up"):
+            # Avatar logic
+            if gender=="Male":
+                avatar_file = "images/male.png"
+            elif gender=="Female":
+                avatar_file = "images/female.png"
+            else:
+                avatar_file = "images/other.png"
+            success,msg = signup(email,password,name,age,gender,location,studying,avatar_file)
             if success:
-                st.success("Account created! Please login.")
+                st.success(msg)
             else:
-                st.error("Username already exists!")
-else:
-    if menu=="Home":
-        st.title("🏠 Home")
-        st.write("Welcome to Career Compass!")
-    elif menu=="Quiz":
-        st.title("📝 Career Quiz")
-        answers=[]
-        for i,q in enumerate(questions_data["main"]):
-            st.write(f"**Q{i+1}: {q['q']}**")
-            opt = {k:v["text"] for k,v in q["options"].items()}
-            choice = st.radio("Choose one:", list(opt.values()), key=f"main_{i}")
-            # map back to option letter
-            for k,v in opt.items():
-                if v==choice:
-                    answers.append(k)
-        if st.button("Submit Quiz"):
-            main_scores = calculate_scores(questions_data["main"],answers)
-            major, minor, backup = recommend(main_scores)
-            st.session_state.quiz_result = {"major":major,"minor":minor,"backup":backup}
-            st.success(f"Your major: {major}, minor: {minor}, backup: {backup}")
-    elif menu=="Your Paths":
-        st.title("📊 Your Career Roadmap")
-        if "quiz_result" in st.session_state:
-            major = st.session_state.quiz_result["major"]
-            # Run sub-quiz if exists
-            if major in questions_data["sub"]:
-                sub_answers=[]
-                for i,q in enumerate(questions_data["sub"][major]):
-                    st.write(f"**Q{i+1}: {q['q']}**")
-                    opt = {k:v["text"] for k,v in q["options"].items()}
-                    choice = st.radio("Choose one:", list(opt.values()), key=f"sub_{i}")
-                    for k,v in opt.items():
-                        if v==choice:
-                            sub_answers.append(k)
-                if st.button("Submit Sub-Quiz"):
-                    sub_scores = calculate_scores(questions_data["sub"][major],sub_answers)
-                    sub_major, sub_minor, sub_backup = recommend(sub_scores)
-                    st.session_state.sub_result = {"major":sub_major,"minor":sub_minor,"backup":sub_backup}
-                    st.success(f"Specialization: {sub_major}")
-                    show_roadmap(major, sub_major)
-            else:
-                st.warning("No specialization available for your stream.")
-        else:
-            st.info("Please complete the main quiz first.")
-    elif menu=="Explore":
-        st.title("🏫 College Recommendations")
-        if "quiz_result" in st.session_state:
-            major = st.session_state.quiz_result["major"]
-            sub_major = st.session_state.sub_result["major"] if "sub_result" in st.session_state else major
-            st.write(f"**Based on your career path: {sub_major}**")
-            matched_colleges = map_course_to_colleges(sub_major)
-            if not matched_colleges.empty:
-                st.dataframe(matched_colleges[["College","Location","Website","Courses"]])
-            else:
-                st.info("No colleges found for this course.")
-        else:
-            st.info("Complete quiz first.")
-    elif menu=="Notifications":
-        st.title("🔔 Notifications")
-        st.info("No new notifications.")
-    elif menu=="About Us":
-        st.title("ℹ️ About Us")
-        st.write("Career Compass helps you discover your ideal career path and colleges!")
-    elif menu=="Logout":
-        st.session_state.logged_in=False
-        st.session_state.user=None
-        st.experimental_rerun()
+                st.error(msg)
+
+# -----------------------------
+# QUIZ
+# -----------------------------
+if choice=="Quiz" and st.session_state.user:
+    st.header("Career Quiz")
+    quiz_data = load_quiz()
+    main_questions = quiz_data["main"]
+    answers = []
+
+    for i,q in enumerate(main_questions):
+        st.subheader(f"Q{i+1}: {q['q']}")
+        opt = {k:v['text'] for k,v in q['options'].items()}
+        ans = st.radio("",list(opt.values()),key=f"q{i}")
+        # Convert selected text back to key
+        selected_key = [k for k,v in opt.items() if v==ans][0]
+        answers.append(selected_key)
+
+    if st.button("Submit Quiz"):
+        main_scores = calculate_scores(main_questions,answers)
+        major, minor, backup = recommend(main_scores)
+        st.session_state.user['your_paths']["major_stream"] = major
+        st.session_state.user['your_paths']["minor_stream"] = minor
+        st.session_state.user['your_paths']["backup_stream"] = backup
+
+        # Sub quiz
+        if major in quiz_data["sub"]:
+            st.info(f"Proceed to {major} specialization")
+            sub_questions = quiz_data["sub"][major]
+            sub_answers = []
+            for i,q in enumerate(sub_questions):
+                st.subheader(f"SubQ{i+1}: {q['q']}")
+                opt = {k:v['text'] for k,v in q['options'].items()}
+                ans = st.radio("",list(opt.values()),key=f"subq{i}")
+                selected_key = [k for k,v in opt.items() if v==ans][0]
+                sub_answers.append(selected_key)
+            if st.button("Submit Sub-Quiz"):
+                sub_scores = calculate_scores(sub_questions,sub_answers)
+                s_major,s_minor,s_backup = recommend(sub_scores)
+                st.session_state.user['your_paths']["major_spec"] = s_major
+                st.session_state.user['your_paths']["minor_spec"] = s_minor
+                st.session_state.user['your_paths']["backup_spec"] = s_backup
+                st.success("Specialization recommendations saved!")
+        st.success("Main stream recommendations saved!")
+
+# -----------------------------
+# YOUR PATHS
+# -----------------------------
+if choice=="Your Paths" and st.session_state.user:
+    st.header("Your Recommended Career Paths")
+    paths = st.session_state.user.get("your_paths",{})
+    st.json(paths)
+
+# -----------------------------
+# EXPLORE COLLEGES
+# -----------------------------
+if choice=="Explore Colleges" and st.session_state.user:
+    st.header("Explore Colleges in J&K")
+    colleges_df = load_colleges()
+    if not colleges_df.empty:
+        st.dataframe(colleges_df)
+    else:
+        st.info("College data not available")
+
+# -----------------------------
+# NOTIFICATIONS
+# -----------------------------
+if choice=="Notifications" and st.session_state.user:
+    st.header("Notifications")
+    st.info("No new notifications")
+
+# -----------------------------
+# ABOUT US
+# -----------------------------
+if choice=="About Us":
+    st.header("About Career Compass")
+    st.write("This platform helps students find career streams and specializations based on their interests.")
+
+# -----------------------------
+# LOG OUT
+# -----------------------------
+if choice=="Log Out":
+    st.session_state.user = None
+    st.success("Logged out successfully!")
