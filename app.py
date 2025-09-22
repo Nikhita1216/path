@@ -258,7 +258,7 @@ def quiz_page():
     if not st.session_state.quiz_done:
         answers = []
         with st.form("quiz_form"):
-            st.info("Answer the following questions to identify your **broad career stream**.")
+            st.info("Answer the following questions to identify your **Major**.")
             for i, q_key in enumerate(sorted(quiz_data.get("main", {}).keys())):
                 q = quiz_data["main"][q_key]
                 st.write(f"**Q{i+1}: {q['question']}**")
@@ -267,7 +267,7 @@ def quiz_page():
                 ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
                 answers.append(ans_key)
 
-            submitted = st.form_submit_button("🚀 Submit Main Quiz")
+            submitted = st.form_submit_button("🚀 Submit ")
             if submitted:
                 main_scores = calculate_scores(quiz_data["main"], answers)
                 major, minor, backup = recommend(main_scores)
@@ -306,7 +306,7 @@ def quiz_page():
                     idx = df.index[df["email"] == st.session_state.user["email"]][0]
                     df.at[idx, "your_paths"] = (
                         f"Major: {major}, Minor: {st.session_state.main_result['minor']}, Backup: {st.session_state.main_result['backup']} | "
-                        f"Specialization Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}"
+                        f"Specializations Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}"
                     )
                     save_users(df)
                     st.session_state.user = df.iloc[idx].to_dict()
@@ -315,21 +315,21 @@ def quiz_page():
                     st.success("🎉 Your career recommendations are ready!")
                     cols = st.columns(3)
                     with cols[0]:
-                        st.metric("🌟 Major Stream", major)
+                        st.metric("🌟 Major 1", major)
                     with cols[1]:
-                        st.metric("📌 Minor", st.session_state.main_result['minor'])
+                        st.metric("📌 Major 2", st.session_state.main_result['minor'])
                     with cols[2]:
-                        st.metric("🛡 Backup", st.session_state.main_result['backup'])
+                        st.metric("🛡 Major 3", st.session_state.main_result['backup'])
 
                     st.markdown("---")
                     st.subheader("🔬 Specialization Results")
                     cols2 = st.columns(3)
                     with cols2[0]:
-                        st.metric("⭐ Major Specialization", sub_major)
+                        st.metric("⭐ Specilization 1", sub_major)
                     with cols2[1]:
-                        st.metric("📌 Minor", sub_minor)
+                        st.metric("📌 specilization 2", sub_minor)
                     with cols2[2]:
-                        st.metric("🛡 Backup", sub_backup)
+                        st.metric("🛡 specilization 3", sub_backup)
 
         else:
             st.info("No specialization quiz available for this stream.")
