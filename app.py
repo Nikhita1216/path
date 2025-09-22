@@ -138,6 +138,10 @@ def recommend(scores):
 
 # ----------------------------- NEWS FUNCTION -----------------------------
 # Replace your old function with this
+def build_query_terms(stream_keywords, extra_keywords=None):
+    phrases = [f"\"{k}\"" for k in stream_keywords]
+    extras = extra_keywords or []
+    return " OR ".join(phrases + extras)
 def fetch_relevant_news(stream, interests, days=21, page_size=50, max_items=30):
     from datetime import datetime, timedelta
     from_date = (datetime.utcnow() - timedelta(days=days)).date().isoformat()
