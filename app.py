@@ -508,16 +508,17 @@ def home_page():
     # Split the stored string into list of careers
              careers = [c.strip() for c in user_paths.split(",") if c.strip()]
 
-        if careers:
-            st.markdown("Here are the careers best aligned with your quiz results:")
-            for i, career in enumerate(careers, 1):
-                st.markdown(f"**{i}. {career}**")
+             if careers:
+                   st.markdown("Here are the careers best aligned with your quiz results:")
+                   for i, career in enumerate(careers, 1):
+                       st.markdown(f"**{i}. {career}**")
 
-            st.success("✨ Explore these careers further in the roadmap below.")
-        else:
-            st.info("⚠ No careers found. Please retake the quiz.")
+                   st.success("✨ Explore these careers further in the roadmap below.")
+             else:
+                    st.info("⚠ No careers found. ")
 
-        else: st.info("Take the quiz to generate your career paths!")
+         else: 
+              st.info("Take the quiz to generate your career paths!")
 
         # ---------------- Career Roadmap UI ----------------
         st.subheader("Career Roadmap")
