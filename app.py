@@ -202,10 +202,11 @@ def home_page():
         st.write("It helps students in J&K explore careers, colleges, and roadmaps.")
 
     elif menu=="Logout":
-        st.session_state.login=False
-        st.session_state.user=None
-        st.session_state.quiz_answers=[]
-        st.experimental_rerun()
+        st.session_state.login = False
+        st.session_state.user = None
+        st.session_state.quiz_answers = []
+        st.success("Logged out successfully.")
+
 
 # ----------------------------- QUIZ PAGE -----------------------------
 def quiz_page():
