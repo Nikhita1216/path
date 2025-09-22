@@ -136,7 +136,7 @@ def recommend(scores):
     return major, minor, backup
 
 # ----------------------------- NEWS FUNCTION -----------------------------
-def fetch_news_for_user_interests(interests, page_size=5):
+def fetch_relevant_news(interests, page_size=5):
     news_items = []
     for interest in interests:
         params = {
