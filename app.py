@@ -146,7 +146,7 @@ def login_page():
         chosen_avatar = None
         if gender != "Select":
             avatars = [os.path.join(AVATAR_FOLDER,f) for f in os.listdir(AVATAR_FOLDER) if f.endswith(".png")]
-            chosen_avatar = st.radio("Choose an avatar", avatars, format_func=lambda x: os.path.basename(x))
+            
 
         city = st.text_input("City", key="signup_city")
         state = st.text_input("State", key="signup_state")
