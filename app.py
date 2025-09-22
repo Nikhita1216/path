@@ -13,7 +13,7 @@ COLLEGES_CSV = "jk_colleges.csv"
 AVATAR_FOLDER = "images"
 QUIZ_FILE = "career_questions.json"
 
-# Ensure session_state variables
+# ----------------------------- SESSION STATE -----------------------------
 if "login" not in st.session_state:
     st.session_state.login = False
 if "user" not in st.session_state:
@@ -25,13 +25,13 @@ if "temp_signup" not in st.session_state:
 def load_users():
     if os.path.exists(USERS_CSV):
         df = pd.read_csv(USERS_CSV)
-        required_cols = ["username","password","name","age","gender","city","state","education","avatar","your_paths"]
+        required_cols = ["email","password","name","age","gender","city","state","education","avatar","your_paths"]
         for col in required_cols:
             if col not in df.columns:
                 df[col] = ""
         return df
     else:
-        df = pd.DataFrame(columns=["username","password","name","age","gender","city","state","education","avatar","your_paths"])
+        df = pd.DataFrame(columns=["email","password","name","age","gender","city","state","education","avatar","your_paths"])
         df.to_csv(USERS_CSV,index=False)
         return df
 
@@ -60,17 +60,17 @@ colleges_df = load_colleges()
 quiz_data = load_quiz()
 
 # ----------------------------- AUTH -----------------------------
-def login(username,password):
+def login(email,password):
     df = load_users()
-    if username in df["username"].values:
-        row = df[df["username"]==username].iloc[0]
+    if email in df["email"].values:
+        row = df[df["email"]==email].iloc[0]
         if row["password"]==password:
             return row.to_dict()
     return None
 
-def signup(username, password, name, age, gender, city, state, education, avatar_file=None):
+def signup(email, password, name, age, gender, city, state, education, avatar_file=None):
     df = load_users()
-    if username in df["username"].values:
+    if email in df["email"].values:
         return False
     if avatar_file is None:
         # assign avatar based on gender
@@ -81,7 +81,7 @@ def signup(username, password, name, age, gender, city, state, education, avatar
         else:
             avatar_file = os.path.join(AVATAR_FOLDER,"avatar3.png")
     new_row = {
-        "username": username,
+        "email": email,
         "password": password,
         "name": name,
         "age": age,
@@ -114,15 +114,14 @@ def recommend(scores):
 
 # ----------------------------- LOGIN / SIGNUP PAGE -----------------------------
 def login_page():
-    st.image(os.path.join(AVATAR_FOLDER,"compass.gif"), width=120) if os.path.exists(os.path.join(AVATAR_FOLDER,"compass.gif")) else None
     st.title("🔐 Login to Career Compass")
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
     with tab1:
-        username = st.text_input("Username", key="login_user")
-        password = st.text_input("Password", type="password", key="login_pass")
+        email = st.text_input("Email", key="login_email")
+        password = st.text_input("Password", type="password", key="login_pwd")
         if st.button("Login"):
-            user = login(username,password)
+            user = login(email,password)
             if user:
                 st.session_state.login=True
                 st.session_state.user=user
@@ -131,24 +130,33 @@ def login_page():
                 st.error("Invalid credentials")
 
     with tab2:
-        username = st.text_input("Username", key="signup_user")
-        password = st.text_input("Password", type="password", key="signup_pass")
+        email = st.text_input("Email", key="signup_email")
+        password = st.text_input("Password", type="password", key="signup_pwd")
         name = st.text_input("Full Name", key="signup_name")
         age = st.number_input("Age", min_value=10, max_value=100, step=1, key="signup_age")
-        gender = st.selectbox("Gender", ["Male","Female","Other"], key="signup_gender")
+        gender = st.selectbox("Gender", ["Select","Male","Female","Other"], key="signup_gender")
+        
+        # Show avatar selection only after gender is chosen
+        chosen_avatar = None
+        if gender != "Select":
+            avatars = [os.path.join(AVATAR_FOLDER, f) for f in os.listdir(AVATAR_FOLDER) if f.endswith(".png")]
+            chosen_avatar = st.radio("Choose an avatar", avatars, format_func=lambda x: os.path.basename(x))
+        
         city = st.text_input("City", key="signup_city")
         state = st.text_input("State", key="signup_state")
         education = st.text_input("Education Qualification", key="signup_edu")
-        avatars = [os.path.join(AVATAR_FOLDER, f) for f in os.listdir(AVATAR_FOLDER) if f.endswith(".png")]
-        chosen_avatar = st.radio("Choose an avatar", avatars, format_func=lambda x: os.path.basename(x))
+        
         if st.button("Sign Up"):
-            success = signup(username,password,name,age,gender,city,state,education,chosen_avatar)
-            if success:
-                st.success("Signup successful! Please login.")
+            if gender=="Select":
+                st.error("Please select a gender first!")
             else:
-                st.error("Username already exists.")
+                success = signup(email,password,name,age,gender,city,state,education,chosen_avatar)
+                if success:
+                    st.success("Signup successful! Please login.")
+                else:
+                    st.error("Email already exists.")
 
-# ----------------------------- SIDEBAR -----------------------------
+# ----------------------------- MAIN -----------------------------
 if not st.session_state.login:
     login_page()
 else:
