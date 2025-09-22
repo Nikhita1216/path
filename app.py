@@ -155,6 +155,7 @@ def login_page():
                     st.error("Email already exists.")
 
 # ----------------------------- HOME PAGE -----------------------------
+# ----------------------------- HOME PAGE -----------------------------
 def home_page():
     # Ensure user exists
     if st.session_state.user is not None:
@@ -175,20 +176,8 @@ def home_page():
         st.title("🧭 Career Compass")
         st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
 
-        # --- Did You Know? Fun Career Facts ---
-        st.markdown("### 💡 Did You Know?")
-        career_facts = [
-            "The fastest-growing career in India is **Data Science**, expected to create 11M+ jobs by 2030.",
-            "The average salary of an **AI Engineer** in India is ₹8–12 LPA for freshers.",
-            "**Graphic Designers** are now in demand not only in media but also in healthcare & finance sectors.",
-            "By 2030, **50% of jobs will require new skills** due to automation and AI.",
-            "India produces **1.5 million engineers** every year, but only ~20% work in core fields."
-        ]
-        import random
-        st.info(random.choice(career_facts))
-
-        # --- Quick Shortcuts ---
-        st.markdown("### 🚀 Quick Shortcuts")
+        # --- Quick Action Buttons ---
+        st.markdown("### 🚀 Quick Actions")
         col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("📝 Take Quiz"):
@@ -202,6 +191,22 @@ def home_page():
             if st.button("🏫 Explore Colleges"):
                 st.session_state.page = "home"
                 st.success("Go to 'Explore' from sidebar!")
+
+        st.markdown("---")
+
+        # --- Did You Know? Fun Career Facts ---
+        st.markdown("### 💡 Did You Know?")
+        career_facts = [
+            "The fastest-growing career in India is **Data Science**, expected to create 11M+ jobs by 2030.",
+            "The average salary of an **AI Engineer** in India is ₹8–12 LPA for freshers.",
+            "**Graphic Designers** are now in demand not only in media but also in healthcare & finance sectors.",
+            "By 2030, **50% of jobs will require new skills** due to automation and AI.",
+            "India produces **1.5 million engineers** every year, but only ~20% work in core fields."
+        ]
+        import random
+        st.info(random.choice(career_facts))
+
+        st.markdown("---")
 
         # --- Success Stories ---
         st.markdown("### 🌟 Success Stories")
@@ -226,6 +231,23 @@ def home_page():
             with st.expander(f"🌟 {s['name']}"):
                 st.write(s["story"])
                 st.success(f"“{s['quote']}”")
+
+    elif menu=="Notifications":
+        st.title("🔔 Notifications")
+        st.markdown("Here you will find career news, tips, and updates tailored for you!")
+        # Example placeholder notifications
+        notifications = [
+            "📌 Your recommended stream: **Data Science**. Check latest courses online!",
+            "📌 Internship alert: Apply for AI internship at TechCorp before 30th Sept.",
+            "📌 Webinar: 'Future Careers in AI & ML', 25th Sept 5 PM, Register now!"
+        ]
+        for note in notifications:
+            st.info(note)
+        st.markdown("---")
+        st.success("Enable personalized news based on your quiz results in the future!")
+
+    # Keep other pages unchanged
+    
 
     elif menu == "Profile":
         st.subheader("👤 Edit Profile")
