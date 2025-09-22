@@ -1,7 +1,7 @@
-College,Location,Website,Courses,Skills
-Government Degree College Jammu,Jammu,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc, B.Com","Communication, Analytical Thinking"
-Government Degree College Bhaderwah,Bhaderwah,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc","Critical Thinking, Research"
-Government Degree College Kathua,Kathua,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc, B.Com","Time Management, Data Analysis"
+College,Location,Website,Courses
+Government Degree College Jammu,Jammu,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc, B.Com"
+Government Degree College Bhaderwah,Bhaderwah,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc"
+Government Degree College Kathua,Kathua,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc, B.Com"
 Government Degree College Poonch,Poonch,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc",
 Government Degree College Rajouri,Rajouri,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc, B.Com",
 Government Degree College Udhampur,Udhampur,https://www.jammuuniversity.ac.in/degree-colleges-govt,"BA, B.Sc, B.Com",
@@ -92,3 +92,4 @@ NIT Srinagar,Srinagar,https://nitsri.ac.in/,B.Tech,
 IIT Jammu,Jammu,https://www.iitjammu.ac.in/,B.Tech,
 Model Institute of Engineering & Technology,Jammu,https://mietjmu.in,"B.Tech(Computer Science and Engineering,Civil Engineering)",
 MBS College of Engineering & Technology,Jammu,https://www.mbscet.edu.in,"B.Tech(Computer Science and Engineering,Civil Engineering)",
+
