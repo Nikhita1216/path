@@ -299,8 +299,8 @@ def college_page():
 # -----------------------------
 def about_page():
     st.header("ℹ️ About Us")
-    st.write("Career Compass is your personal career guidance tool built for SIH.")
-    st.write("We help students in Jammu & Kashmir explore careers, colleges, and roadmaps.")
+    st.write("Career Compass is your personal career guidance tool.")
+    st.write("We help students explore careers, colleges, and roadmaps.")
     st.subheader("📞 Contact Info")
     st.write("Email: support@careercompass.in")
     st.write("Phone: +91-9876543210")
