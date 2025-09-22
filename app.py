@@ -661,15 +661,15 @@ def quiz_page():
         else:
             st.info("No specialization quiz available for this stream.")
             st.session_state.sub_done = True
-        
-    # ---- RESULTS ----
-    elif st.session_state.quiz_done and st.session_state.sub_done:
-        st.success("✅ Quiz completed. Check **Your Paths** for details.")
         if st.button("🔄 Retake Quiz"):
             st.session_state.quiz_done = False
             st.session_state.sub_done = False
             st.session_state.main_result = {}
             st.rerun()
+        
+    # ---- RESULTS ----
+  
+        
 
 # ----------------------------- ROUTER -----------------------------
 if st.session_state.page=="login":
