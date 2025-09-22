@@ -163,7 +163,7 @@ def home_page():
         st.sidebar.image(os.path.join(AVATAR_FOLDER,"avatar3.png"), width=80)
     
     st.sidebar.title(f"Welcome, {st.session_state.user['name']}")
-    menu = st.sidebar.radio("📍 Navigate", ["Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"])
+    menu = st.sidebar.radio("📍 Menu", ["Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"])
 
     if menu=="Home":
         st.title("🎯 Career Compass")
