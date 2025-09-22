@@ -170,7 +170,10 @@ def home_page():
     menu = st.sidebar.radio(
         "📍 Menu", ["Profile","Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"]
     )
-    if menu == "Profile":
+    if menu=="Home":
+        st.title("🧭 Career Compass")
+        st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
+    elif menu == "Profile":
         st.subheader("👤 Edit Profile")
         if st.session_state.user:
             user = st.session_state.user
@@ -203,9 +206,7 @@ def home_page():
                 })
                 save_user_data(st.session_state.user["email"], user)  # <-- update CSV
                 st.success("Profile updated successfully!")
-    elif menu=="Home":
-        st.title("🧭 Career Compass")
-        st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
+    
 
     elif menu=="Quiz":
         quiz_page()
