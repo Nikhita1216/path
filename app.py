@@ -245,28 +245,78 @@ def home_page():
 # ----------------------------- QUIZ PAGE -----------------------------
 def quiz_page():
     st.header("📝 Career Quiz")
-    answers = []
-    with st.form("quiz_form"):
-        for i, q_key in enumerate(sorted(quiz_data["main"].keys())):
-            q = quiz_data["main"][q_key]
-            st.write(f"**Q{i+1}: {q['question']}**")
-            option_texts = [opt["text"] for opt in q["options"].values()]
-            ans_idx = st.radio("Choose answer", option_texts, key=f"main_{i}")
-            ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
-            answers.append(ans_key)
 
-        submitted = st.form_submit_button("Submit Quiz")
-        if submitted:
-            main_scores = calculate_scores(quiz_data["main"], answers)
-            major, minor, backup = recommend(main_scores)
-            st.success(f"Major: {major}, Minor: {minor}, Backup: {backup}")
+    # Ensure session flags exist
+    if "quiz_done" not in st.session_state:
+        st.session_state.quiz_done = False
+    if "main_result" not in st.session_state:
+        st.session_state.main_result = None
+    if "sub_done" not in st.session_state:
+        st.session_state.sub_done = False
 
-            # Save results to user
-            df = load_users()
-            idx = df.index[df["email"]==st.session_state.user["email"]][0]
-            df.at[idx,"your_paths"] = f"Major: {major}, Minor: {minor}, Backup: {backup}"
-            save_users(df)
-            st.session_state.user = df.iloc[idx].to_dict()
+    # ---- MAIN QUIZ ----
+    if not st.session_state.quiz_done:
+        answers = []
+        with st.form("quiz_form"):
+            for i, q_key in enumerate(sorted(quiz_data.get("main", {}).keys())):
+                q = quiz_data["main"][q_key]
+                st.write(f"**Q{i+1}: {q['question']}**")
+                option_texts = [opt["text"] for opt in q["options"].values()]
+                ans_idx = st.radio("Choose answer", option_texts, key=f"main_{i}")
+                ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
+                answers.append(ans_key)
+
+            submitted = st.form_submit_button("Submit Main Quiz")
+            if submitted:
+                main_scores = calculate_scores(quiz_data["main"], answers)
+                major, minor, backup = recommend(main_scores)
+                st.session_state.main_result = {"major": major, "minor": minor, "backup": backup}
+                st.session_state.quiz_done = True
+                st.success(f"Major: {major}, Minor: {minor}, Backup: {backup}")
+
+    # ---- SUB QUIZ (after main quiz) ----
+    elif st.session_state.quiz_done and not st.session_state.sub_done:
+        major = st.session_state.main_result["major"]
+        st.subheader(f"🧩 Specialization Quiz: {major}")
+
+        if major in quiz_data.get("sub", {}):
+            sub_answers = []
+            with st.form("sub_quiz_form"):
+                for j, q_key in enumerate(sorted(quiz_data["sub"][major].keys())):
+                    q = quiz_data["sub"][major][q_key]
+                    st.write(f"**Q{j+1}: {q['question']}**")
+                    option_texts = [opt["text"] for opt in q["options"].values()]
+                    ans_idx = st.radio("Choose answer", option_texts, key=f"sub_{j}")
+                    ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
+                    sub_answers.append(ans_key)
+
+                sub_submitted = st.form_submit_button("Submit Specialization Quiz")
+                if sub_submitted:
+                    sub_scores = calculate_scores(quiz_data["sub"][major], sub_answers)
+                    sub_major, sub_minor, sub_backup = recommend(sub_scores)
+                    st.session_state.sub_done = True
+                    st.success(f"Specialization Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}")
+
+                    # Save both results
+                    df = load_users()
+                    idx = df.index[df["email"] == st.session_state.user["email"]][0]
+                    df.at[idx, "your_paths"] = (
+                        f"Major: {major}, Minor: {st.session_state.main_result['minor']}, Backup: {st.session_state.main_result['backup']} | "
+                        f"Specialization Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}"
+                    )
+                    save_users(df)
+                    st.session_state.user = df.iloc[idx].to_dict()
+        else:
+            st.info("No specialization quiz available for this stream.")
+            st.session_state.sub_done = True
+
+    # ---- SHOW RESULTS if both done ----
+    elif st.session_state.quiz_done and st.session_state.sub_done:
+        st.success("✅ You have completed the quiz and specialization!")
+        st.write("Check your saved career paths in **Your Paths** section.")
+
+
+
 
 # ----------------------------- ROUTER -----------------------------
 if "page" not in st.session_state:
