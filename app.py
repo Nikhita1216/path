@@ -69,10 +69,19 @@ def signup(username, password, fullname, gender):
     else:
         avatar_file="other.png"
 
-    # Append new user
-    users_df.loc[len(users_df)] = [username,password,fullname,gender,avatar_file]
+    # Append new user as a dictionary
+    new_row = {
+        "username": username,
+        "password": password,
+        "fullname": fullname,
+        "gender": gender,
+        "avatar": avatar_file
+    }
+
+    users_df = pd.concat([users_df, pd.DataFrame([new_row])], ignore_index=True)
     users_df.to_csv(USERS_CSV,index=False)
     return True
+
 
 # -----------------------------
 # SIDEBAR
