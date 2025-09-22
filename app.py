@@ -168,7 +168,7 @@ def home_page():
         st.sidebar.title("Welcome, Guest")
 
     menu = st.sidebar.radio(
-        "📍 Menu", ["Profile","Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"]
+        "📍 Menu", ["Home","Quiz","Your Paths","Explore","Notifications","Profile","About Us","Logout"]
     )
     if menu=="Home":
         st.title("🧭 Career Compass")
