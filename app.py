@@ -172,7 +172,7 @@ def home_page():
     )
 
     if menu=="Home":
-        st.title("🎯 Career Compass")
+        st.title("🧭 Career Compass")
         st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
 
     elif menu=="Quiz":
