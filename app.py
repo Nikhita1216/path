@@ -258,25 +258,25 @@ def quiz_page():
     if not st.session_state.quiz_done:
         answers = []
         with st.form("quiz_form"):
+            st.info("Answer the following questions to identify your **broad career stream**.")
             for i, q_key in enumerate(sorted(quiz_data.get("main", {}).keys())):
                 q = quiz_data["main"][q_key]
                 st.write(f"**Q{i+1}: {q['question']}**")
                 option_texts = [opt["text"] for opt in q["options"].values()]
-                ans_idx = st.radio("Choose answer", option_texts, key=f"main_{i}")
+                ans_idx = st.radio("", option_texts, key=f"main_{i}")
                 ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
                 answers.append(ans_key)
 
-            submitted = st.form_submit_button("Submit Main Quiz")
+            submitted = st.form_submit_button("🚀 Submit Main Quiz")
             if submitted:
                 main_scores = calculate_scores(quiz_data["main"], answers)
                 major, minor, backup = recommend(main_scores)
                 st.session_state.main_result = {"major": major, "minor": minor, "backup": backup}
                 st.session_state.quiz_done = True
-                st.success(f"Major: {major}, Minor: {minor}, Backup: {backup}")
 
     # ---- SUB QUIZ ----
     elif st.session_state.quiz_done and not st.session_state.sub_done:
-        major = st.session_state.main_result.get("major")  # ✅ safe access
+        major = st.session_state.main_result.get("major")
         if not major:
             st.error("No major stream identified. Please retake the quiz.")
             return
@@ -286,20 +286,20 @@ def quiz_page():
         if major in quiz_data.get("sub", {}):
             sub_answers = []
             with st.form("sub_quiz_form"):
+                st.info("Now let’s narrow down to your **specialization**.")
                 for j, q_key in enumerate(sorted(quiz_data["sub"][major].keys())):
                     q = quiz_data["sub"][major][q_key]
                     st.write(f"**Q{j+1}: {q['question']}**")
                     option_texts = [opt["text"] for opt in q["options"].values()]
-                    ans_idx = st.radio("Choose answer", option_texts, key=f"sub_{j}")
+                    ans_idx = st.radio("", option_texts, key=f"sub_{j}")
                     ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
                     sub_answers.append(ans_key)
 
-                sub_submitted = st.form_submit_button("Submit Specialization Quiz")
+                sub_submitted = st.form_submit_button("✨ Submit Specialization Quiz")
                 if sub_submitted:
                     sub_scores = calculate_scores(quiz_data["sub"][major], sub_answers)
                     sub_major, sub_minor, sub_backup = recommend(sub_scores)
                     st.session_state.sub_done = True
-                    st.success(f"Specialization Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}")
 
                     # Save results
                     df = load_users()
@@ -310,6 +310,27 @@ def quiz_page():
                     )
                     save_users(df)
                     st.session_state.user = df.iloc[idx].to_dict()
+
+                    # Fancy UI results
+                    st.success("🎉 Your career recommendations are ready!")
+                    cols = st.columns(3)
+                    with cols[0]:
+                        st.metric("🌟 Major Stream", major)
+                    with cols[1]:
+                        st.metric("📌 Minor", st.session_state.main_result['minor'])
+                    with cols[2]:
+                        st.metric("🛡 Backup", st.session_state.main_result['backup'])
+
+                    st.markdown("---")
+                    st.subheader("🔬 Specialization Results")
+                    cols2 = st.columns(3)
+                    with cols2[0]:
+                        st.metric("⭐ Major Specialization", sub_major)
+                    with cols2[1]:
+                        st.metric("📌 Minor", sub_minor)
+                    with cols2[2]:
+                        st.metric("🛡 Backup", sub_backup)
+
         else:
             st.info("No specialization quiz available for this stream.")
             st.session_state.sub_done = True
@@ -317,8 +338,14 @@ def quiz_page():
     # ---- RESULTS ----
     elif st.session_state.quiz_done and st.session_state.sub_done:
         st.success("✅ Quiz complete!")
-        st.write("Check your saved career paths in **Your Paths** section.")
-
+        st.write("Your results have been saved in **Your Paths** section.")
+        
+        # Retake option
+        if st.button("🔄 Retake Quiz"):
+            st.session_state.quiz_done = False
+            st.session_state.sub_done = False
+            st.session_state.main_result = {}
+            st.experimental_rerun()
 
 
 
