@@ -156,14 +156,20 @@ def login_page():
 
 # ----------------------------- HOME PAGE -----------------------------
 def home_page():
-    avatar_path = st.session_state.user.get("avatar", os.path.join(AVATAR_FOLDER,"avatar3.png"))
-    if os.path.exists(avatar_path):
+    # Ensure user exists
+    if st.session_state.user is not None:
+        avatar_path = st.session_state.user.get("avatar")
+        if not avatar_path or not os.path.exists(avatar_path):
+            avatar_path = os.path.join(AVATAR_FOLDER, "avatar3.png")
         st.sidebar.image(avatar_path, width=80)
+        st.sidebar.title(f"Welcome, {st.session_state.user['name']}")
     else:
-        st.sidebar.image(os.path.join(AVATAR_FOLDER,"avatar3.png"), width=80)
-    
-    st.sidebar.title(f"Welcome, {st.session_state.user['name']}")
-    menu = st.sidebar.radio("📍 Menu", ["Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"])
+        st.sidebar.image(os.path.join(AVATAR_FOLDER, "avatar3.png"), width=80)
+        st.sidebar.title("Welcome, Guest")
+
+    menu = st.sidebar.radio(
+        "📍 Menu", ["Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"]
+    )
 
     if menu=="Home":
         st.title("🎯 Career Compass")
