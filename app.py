@@ -138,6 +138,18 @@ def recommend(scores):
 
 # ----------------------------- NEWS FUNCTION -----------------------------
 # Replace your old function with this
+# --- Stream-specific whitelisted domains ---
+STREAM_DOMAINS = {
+    "Engineering": ["ieee.org", "techcrunch.com", "arstechnica.com", "theverge.com"],
+    "Science": ["nature.com", "sciencedaily.com", "scientificamerican.com", "arxiv.org"],
+    "Medical": ["nejm.org", "thelancet.com", "who.int", "nih.gov"],
+    "Arts": ["theguardian.com", "nytimes.com", "smithsonianmag.com"],
+    "Commerce": ["ft.com", "economist.com", "wsj.com", "business-standard.com"]
+}
+
+# --- Low-quality / irrelevant domains to exclude ---
+EXCLUDE = ["rumble.com", "brighteon.com", "apple.com", "facebook.com"]
+
 def build_query_terms(stream_keywords, extra_keywords=None):
     phrases = [f"\"{k}\"" for k in stream_keywords]
     extras = extra_keywords or []
