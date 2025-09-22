@@ -41,7 +41,7 @@ def signup(name,email,password,age,gender,location,studying):
     users_df = load_users()
     if email in users_df.email.values:
         return False, "Email already registered."
-    avatar_file = "male.png" if gender.lower()=="male" else "female.png"
+    avatar_file = "avatar2.png" if gender.lower()=="male" else "avatar1.png"
     users_df.loc[len(users_df)] = [name,email,password,age,gender,location,studying,avatar_file,""]
     users_df.to_csv(USERS_CSV,index=False)
     return True, "Signup successful."
