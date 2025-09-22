@@ -22,11 +22,18 @@ if "user" not in st.session_state:
 # ----------------------------- LOAD DATA -----------------------------
 def load_users():
     if os.path.exists(USERS_CSV):
-        return pd.read_csv(USERS_CSV)
+        df = pd.read_csv(USERS_CSV)
+        # Ensure all required columns exist
+        required_cols = ["username","password","name","age","gender","city","state","education","avatar","your_paths"]
+        for col in required_cols:
+            if col not in df.columns:
+                df[col] = ""
+        return df
     else:
         df = pd.DataFrame(columns=["username","password","name","age","gender","city","state","education","avatar","your_paths"])
         df.to_csv(USERS_CSV,index=False)
         return df
+
 
 def load_colleges():
     if os.path.exists(COLLEGES_CSV):
@@ -59,9 +66,10 @@ def login(username,password):
             return row.to_dict()
     return None
 
-def signup(username,password,name,age,gender,city,state,education):
+def signup(username, password, name, age, gender, city, state, education):
     df = load_users()
-    if username in df.username.values:
+    # Use df["username"] to avoid AttributeError
+    if "username" in df.columns and username in df["username"].values:
         return False
     # assign avatar based on gender
     if gender=="Male":
@@ -69,12 +77,24 @@ def signup(username,password,name,age,gender,city,state,education):
     elif gender=="Female":
         avatar_file = os.path.join(AVATAR_FOLDER,"avatar1.png")
     else:
-        avatar_file = os.path.join(AVATAR_FOLDER,"other.png")
-    new_row = {"username":username,"password":password,"name":name,"age":age,"gender":gender,
-               "city":city,"state":state,"education":education,"avatar":avatar_file,"your_paths":""}
-    df = pd.concat([df,pd.DataFrame([new_row])], ignore_index=True)
-    df.to_csv(USERS_CSV,index=False)
+        avatar_file = os.path.join(AVATAR_FOLDER,"avatar3.png")
+    
+    new_row = {
+        "username": username,
+        "password": password,
+        "name": name,
+        "age": age,
+        "gender": gender,
+        "city": city,
+        "state": state,
+        "education": education,
+        "avatar": avatar_file,
+        "your_paths": ""
+    }
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    df.to_csv(USERS_CSV, index=False)
     return True
+
 
 # ----------------------------- QUIZ LOGIC -----------------------------
 def calculate_scores(questions, answers):
