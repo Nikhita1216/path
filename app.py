@@ -252,52 +252,53 @@ def home_page():
                 st.success(f"“{s['quote']}”")
 
     # --- Notifications Page ---
+        # --- Notifications Page ---
     elif menu=="Notifications":
         st.title("🔔 Notifications")
         st.markdown("Here you will find career news, tips, and updates tailored for you!")
 
         if st.session_state.user and st.session_state.user.get("your_paths"):
-        # Extract streams from quiz results
-             paths = st.session_state.user["your_paths"]
-        # Simple parsing: Major: X, Minor: Y, Backup: Z
-             major = None
-             try:
-                  major = paths.split("Major:")[1].split(",")[0].strip()
-             except:
-                  major = None
+            # Extract stream (major) from quiz results
+            paths = st.session_state.user["your_paths"]
+            major = None
+            try:
+                major = paths.split("Major:")[1].split(",")[0].strip()
+            except:
+                major = None
 
-             if major:
-                  st.info(f"Fetching latest news for your major: **{major}**...")
+            if major:
+                st.info(f"Fetching latest news for your major: **{major}**...")
 
-            # Map major to keywords (adjust as needed)
-                  STREAM_KEYWORDS = {
-                "Engineering": ["robotics", "AI", "automation", "IoT"],
-                "Science": ["space", "physics", "biology", "chemistry"],
-                "Medical": ["healthcare", "medicine", "clinical trials", "pharma"],
-                "Arts": ["design", "media", "painting", "music"],
-                "Commerce": ["finance", "stock market", "economics", "entrepreneurship"]
-            }
+                # Map majors to keywords
+                STREAM_KEYWORDS = {
+                    "Engineering": ["robotics", "AI", "automation", "IoT"],
+                    "Science": ["space", "physics", "biology", "chemistry"],
+                    "Medical": ["healthcare", "medicine", "clinical trials", "pharma"],
+                    "Arts": ["design", "media", "painting", "music"],
+                    "Commerce": ["finance", "stock market", "economics", "entrepreneurship"]
+                }
 
-                  keywords = STREAM_KEYWORDS.get(major, [major])
-            
-                  try:
-                      news_items = fetch_relevant_news(major, keywords)
-                      if news_items:
-                          for n in news_items:
-                              st.markdown(f"**[{n['title']}]({n['url']})**")
-                              if n['description']:
-                                  st.write(n['description'])
-                              st.caption(f"{n['source']} | {n['publishedAt']}")
-                              st.markdown("---")
-                      else:
-                           st.info("No recent news found for your major. Check back later!")
-                  except Exception as e:
-                      st.error(f"Error fetching news: {e}")
+                keywords = STREAM_KEYWORDS.get(major, [major])
 
-               else:
-                  st.info("Your quiz results are incomplete. Take the quiz to get personalized news!")
-           else:
-              st.info("Take the quiz to get news tailored to your career interests!")
+                try:
+                    news_items = fetch_relevant_news(major, keywords, days=14, page_size=30, max_items=10)
+                    if news_items:
+                        for n in news_items:
+                            st.markdown(f"**[{n['title']}]({n['url']})**")
+                            if n['description']:
+                                st.write(n['description'])
+                            st.caption(f"{n['source']} | {n['publishedAt']}")
+                            st.markdown("---")
+                    else:
+                        st.info("No recent news found for your major. Check back later!")
+                except Exception as e:
+                    st.error(f"Error fetching news: {e}")
+
+            else:
+                st.info("Your quiz results are incomplete. Take the quiz to get personalized news!")
+        else:
+            st.info("Take the quiz to get news tailored to your career interests!")
+
 
     # --- Other pages ---
     elif menu=="Quiz":
