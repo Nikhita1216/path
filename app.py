@@ -608,6 +608,11 @@ def quiz_page():
         major = st.session_state.main_result.get("major")
         if not major:
             st.error("No major stream identified. Please retake the quiz.")
+            if st.button("🔄 Retake Quiz"):
+                st.session_state.quiz_done = False
+                st.session_state.sub_done = False
+                st.session_state.main_result = {}
+                st.rerun()
             return
 
         st.subheader(f"🧩 Specialization Quiz: {major}")
@@ -663,7 +668,11 @@ def quiz_page():
         else:
             st.info("No specialization quiz available for this stream.")
             st.session_state.sub_done = True
-
+        if st.button("🔄 Retake Quiz"):
+            st.session_state.quiz_done = False
+            st.session_state.sub_done = False
+            st.session_state.main_result = {}
+            st.rerun()
     # ---- RESULTS ----
     elif st.session_state.quiz_done and st.session_state.sub_done:
         st.success("✅ Quiz already completed. Check your **Your Paths** section for details.")
