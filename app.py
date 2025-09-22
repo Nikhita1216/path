@@ -266,13 +266,13 @@ def quiz_page():
                 ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
                 answers.append(ans_key)
 
-            submitted = st.form_submit_button("Submit Main Quiz")
+            submitted = st.form_submit_button("Submit")
             if submitted:
                 main_scores = calculate_scores(quiz_data["main"], answers)
                 major, minor, backup = recommend(main_scores)
-                st.session_state.main_result = {"major": major, "minor": minor, "backup": backup}
+                st.session_state.main_result = {"Major": major, "minor": minor, "backup": backup}
                 st.session_state.quiz_done = True
-                st.success(f"Major: {major}, Minor: {minor}, Backup: {backup}")
+                st.success(f"Majors:\n1{major}\n2{minor}\n3{backup}")
 
     # ---- SUB QUIZ (after main quiz) ----
     elif st.session_state.quiz_done and not st.session_state.sub_done:
@@ -290,12 +290,12 @@ def quiz_page():
                     ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
                     sub_answers.append(ans_key)
 
-                sub_submitted = st.form_submit_button("Submit Specialization Quiz")
+                sub_submitted = st.form_submit_button("Submit")
                 if sub_submitted:
                     sub_scores = calculate_scores(quiz_data["sub"][major], sub_answers)
                     sub_major, sub_minor, sub_backup = recommend(sub_scores)
                     st.session_state.sub_done = True
-                    st.success(f"Specialization Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}")
+                    st.success(f"Specializations:\n1{sub_major}\n2{sub_minor}\n3{sub_backup}")
 
                     # Save both results
                     df = load_users()
