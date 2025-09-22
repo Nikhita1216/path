@@ -222,21 +222,8 @@ def home_page():
         st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
 
         # --- Quick Actions ---
-        st.markdown("### 🚀 Quick Actions")
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            if st.button("📝 Take Quiz"):
-                st.session_state.page = "Quiz"
-        with col2:
-            if st.button("📈 View Your Paths"):
-                st.session_state.page = "Your Paths"
-        with col3:
-            if st.button("🏫 Explore Colleges"):
-                st.session_state.page = "Explore"
-        with col4:
-            if st.button("🔔 Notifications"):
-                st.session_state.page = "Notifications"
-
+       # st.markdown("### 🚀 Quick Actions")
+        
         st.markdown("---")
 
         # --- Did You Know? Fun Career Facts ---
