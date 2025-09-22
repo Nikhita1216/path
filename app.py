@@ -170,9 +170,63 @@ def home_page():
     menu = st.sidebar.radio(
         "📍 Menu", ["Home","Quiz","Your Paths","Explore","Notifications","Profile","About Us","Logout"]
     )
+
     if menu=="Home":
         st.title("🧭 Career Compass")
         st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
+
+        # --- Did You Know? Fun Career Facts ---
+        st.markdown("### 💡 Did You Know?")
+        career_facts = [
+            "The fastest-growing career in India is **Data Science**, expected to create 11M+ jobs by 2030.",
+            "The average salary of an **AI Engineer** in India is ₹8–12 LPA for freshers.",
+            "**Graphic Designers** are now in demand not only in media but also in healthcare & finance sectors.",
+            "By 2030, **50% of jobs will require new skills** due to automation and AI.",
+            "India produces **1.5 million engineers** every year, but only ~20% work in core fields."
+        ]
+        import random
+        st.info(random.choice(career_facts))
+
+        # --- Quick Shortcuts ---
+        st.markdown("### 🚀 Quick Shortcuts")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("📝 Take Quiz"):
+                st.session_state.page = "home"
+                quiz_page()
+        with col2:
+            if st.button("📈 View Your Paths"):
+                st.session_state.page = "home"
+                st.success("Go to 'Your Paths' from sidebar!")
+        with col3:
+            if st.button("🏫 Explore Colleges"):
+                st.session_state.page = "home"
+                st.success("Go to 'Explore' from sidebar!")
+
+        # --- Success Stories ---
+        st.markdown("### 🌟 Success Stories")
+        stories = [
+            {
+                "name": "Aditi Sharma",
+                "story": "From a small town in J&K, Aditi cracked **IIT-JEE** and is now a researcher in AI at Google.",
+                "quote": "Never doubt your potential, guidance + hard work = success!"
+            },
+            {
+                "name": "Ravi Kumar",
+                "story": "Started as a diploma student in civil engineering, Ravi built a startup in **Sustainable Housing**.",
+                "quote": "Your background doesn’t define you, your choices do."
+            },
+            {
+                "name": "Mehak Ali",
+                "story": "A passionate artist who turned her hobby into a career in **Graphic Design** freelancing worldwide.",
+                "quote": "Follow your passion, and success will follow you."
+            }
+        ]
+        for s in stories:
+            with st.expander(f"🌟 {s['name']}"):
+                st.write(s["story"])
+                st.success(f"“{s['quote']}”")
+
     elif menu == "Profile":
         st.subheader("👤 Edit Profile")
         if st.session_state.user:
