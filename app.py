@@ -495,14 +495,7 @@ def home_page():
 
     # --- Other pages ---
     elif menu=="Quiz":
-        if st.session_state.get("quiz_done", False):  # show only if quiz already completed
-            if st.sidebar.button("🔄 Retake Quiz"):
-            # reset state
-                st.session_state.quiz_done = False
-                st.session_state.sub_done = False
-                st.session_state.quiz_answers = []
-                st.session_state.main_result = {}
-                st.sidebar.success("Quiz reset! Start again below 👇")
+       
         quiz_page()
   
     elif menu=="Your Paths":
@@ -668,14 +661,15 @@ def quiz_page():
         else:
             st.info("No specialization quiz available for this stream.")
             st.session_state.sub_done = True
+        
+    # ---- RESULTS ----
+    elif st.session_state.quiz_done and st.session_state.sub_done:
+        st.success("✅ Quiz completed. Check **Your Paths** for details.")
         if st.button("🔄 Retake Quiz"):
             st.session_state.quiz_done = False
             st.session_state.sub_done = False
             st.session_state.main_result = {}
             st.rerun()
-    # ---- RESULTS ----
-    elif st.session_state.quiz_done and st.session_state.sub_done:
-        st.success("✅ Quiz already completed. Check your **Your Paths** section for details.")
 
 # ----------------------------- ROUTER -----------------------------
 if st.session_state.page=="login":
