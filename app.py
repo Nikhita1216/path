@@ -338,7 +338,7 @@ def quiz_page():
     # ---- RESULTS ----
     elif st.session_state.quiz_done and st.session_state.sub_done:
         st.success("✅ Quiz complete!")
-        st.write("Your results have been saved in **Your Paths** section.")
+        st.write("Your results have been saved in **Your Paths** ")
         
         # Retake option
         if st.button("🔄 Retake Quiz"):
