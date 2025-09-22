@@ -496,7 +496,7 @@ def home_page():
     # --- Other pages ---
     elif menu=="Quiz":
         quiz_page()
-   elif menu=="Your Paths":
+    elif menu=="Your Paths":
         st.title("📈 Your Career Paths")
         user_paths = st.session_state.user.get("your_paths","")
         if user_paths: st.write(user_paths)
