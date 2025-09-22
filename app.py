@@ -50,14 +50,26 @@ def login(username, password):
     return None
 
 def signup(username, password, fullname, gender):
-    if username in users_df.username.values:
+    global users_df
+    # Ensure required columns exist
+    required_cols = ["username","password","fullname","gender","avatar"]
+    for col in required_cols:
+        if col not in users_df.columns:
+            users_df[col] = ""
+
+    # Check if username exists
+    if username in users_df["username"].values:
         return False
+
+    # Assign avatar based on gender
     if gender=="Male":
         avatar_file="male.png"
     elif gender=="Female":
         avatar_file="female.png"
     else:
         avatar_file="other.png"
+
+    # Append new user
     users_df.loc[len(users_df)] = [username,password,fullname,gender,avatar_file]
     users_df.to_csv(USERS_CSV,index=False)
     return True
