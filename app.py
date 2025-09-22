@@ -250,7 +250,7 @@ def quiz_page():
     if "quiz_done" not in st.session_state:
         st.session_state.quiz_done = False
     if "main_result" not in st.session_state:
-        st.session_state.main_result = None
+        st.session_state.main_result = {}
     if "sub_done" not in st.session_state:
         st.session_state.sub_done = False
 
@@ -266,17 +266,21 @@ def quiz_page():
                 ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
                 answers.append(ans_key)
 
-            submitted = st.form_submit_button("Submit")
+            submitted = st.form_submit_button("Submit Main Quiz")
             if submitted:
                 main_scores = calculate_scores(quiz_data["main"], answers)
                 major, minor, backup = recommend(main_scores)
-                st.session_state.main_result = {"Major": major, "minor": minor, "backup": backup}
+                st.session_state.main_result = {"major": major, "minor": minor, "backup": backup}
                 st.session_state.quiz_done = True
-                st.success(f"Majors:\n1{major}\n2{minor}\n3{backup}")
+                st.success(f"Major: {major}, Minor: {minor}, Backup: {backup}")
 
-    # ---- SUB QUIZ (after main quiz) ----
+    # ---- SUB QUIZ ----
     elif st.session_state.quiz_done and not st.session_state.sub_done:
-        major = st.session_state.main_result["major"]
+        major = st.session_state.main_result.get("major")  # ✅ safe access
+        if not major:
+            st.error("No major stream identified. Please retake the quiz.")
+            return
+
         st.subheader(f"🧩 Specialization Quiz: {major}")
 
         if major in quiz_data.get("sub", {}):
@@ -290,14 +294,14 @@ def quiz_page():
                     ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
                     sub_answers.append(ans_key)
 
-                sub_submitted = st.form_submit_button("Submit")
+                sub_submitted = st.form_submit_button("Submit Specialization Quiz")
                 if sub_submitted:
                     sub_scores = calculate_scores(quiz_data["sub"][major], sub_answers)
                     sub_major, sub_minor, sub_backup = recommend(sub_scores)
                     st.session_state.sub_done = True
-                    st.success(f"Specializations:\n1{sub_major}\n2{sub_minor}\n3{sub_backup}")
+                    st.success(f"Specialization Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}")
 
-                    # Save both results
+                    # Save results
                     df = load_users()
                     idx = df.index[df["email"] == st.session_state.user["email"]][0]
                     df.at[idx, "your_paths"] = (
@@ -310,9 +314,9 @@ def quiz_page():
             st.info("No specialization quiz available for this stream.")
             st.session_state.sub_done = True
 
-    # ---- SHOW RESULTS if both done ----
+    # ---- RESULTS ----
     elif st.session_state.quiz_done and st.session_state.sub_done:
-        st.success("✅ You have completed the quiz and specialization!")
+        st.success("✅ Quiz complete!")
         st.write("Check your saved career paths in **Your Paths** section.")
 
 
