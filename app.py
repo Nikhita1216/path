@@ -495,7 +495,16 @@ def home_page():
 
     # --- Other pages ---
     elif menu=="Quiz":
+        if st.session_state.get("quiz_done", False):  # show only if quiz already completed
+        if st.sidebar.button("🔄 Retake Quiz"):
+            # reset state
+            st.session_state.quiz_done = False
+            st.session_state.sub_done = False
+            st.session_state.quiz_answers = []
+            st.session_state.main_result = {}
+            st.sidebar.success("Quiz reset! Start again below 👇")
         quiz_page()
+  
     elif menu=="Your Paths":
         st.title("📈 Your Career Paths")
         user_paths = st.session_state.user.get("your_paths","")
