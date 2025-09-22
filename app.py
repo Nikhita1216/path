@@ -4,6 +4,7 @@ import json
 import os
 import requests
 import random
+from typing import List, Dict
 
 
 # ----------------------------- CONFIG -----------------------------
@@ -15,6 +16,153 @@ AVATAR_FOLDER = "images"
 QUIZ_FILE = "career_questions.json"
 API_KEY = '1544f28739f54713873b32e7687dac2d'
 BASE_URL = 'https://newsapi.org/v2/everything'
+# ----------------------------- CAREER ROADMAP DATA -----------------------------
+CAREER_TO_DEGREES = {
+    # tech/data
+    "Data Analyst": ["B.Sc", "BCA", "B.Com"],
+    "Software Developer": ["BCA", "B.Sc", "B.Tech", "BE"],
+    "AI/ML Engineer": ["B.Tech", "BE", "B.Sc"],
+    # business/arts
+    "Business Analyst": ["B.Com", "BBA", "B.Sc"],
+    "Graphic Designer": ["BA", "Arts"],
+    # medical/health
+    "Doctor (MBBS)": ["MBBS"],
+    "Dentist (BDS)": ["BDS"],
+    "Nurse": ["B.Sc. Nursing"],
+    # architecture
+    "Architect": ["B.Arch"],
+}
+
+CAREER_KEYWORDS = {
+    "Data Analyst": ["data", "statistics", "analytics", "python"],
+    "Software Developer": ["programming", "software", "computer"],
+    "AI/ML Engineer": ["ai", "ml", "machine", "data"],
+    "Business Analyst": ["finance", "business", "analytics"],
+    "Graphic Designer": ["design", "art", "media"],
+    "Doctor (MBBS)": ["medicine", "clinical", "biology"],
+    "Dentist (BDS)": ["dental", "oral"],
+    "Nurse": ["nursing", "health"],
+    "Architect": ["architecture", "design"],
+}
+
+ENTRANCE_BY_DEGREE = {
+    "BA": {"exam": "CUET-UG (where applicable)", "ref": "https://cuet.nta.nic.in/"},
+    "B.Sc": {"exam": "CUET-UG (where applicable)", "ref": "https://cuet.nta.nic.in/"},
+    "B.Com": {"exam": "CUET-UG (where applicable)", "ref": "https://cuet.nta.nic.in/"},
+    "BBA": {"exam": "CUET-UG / Univ process", "ref": "https://cuet.nta.nic.in/"},
+    "BCA": {"exam": "CUET-UG / Univ process", "ref": "https://cuet.nta.nic.in/"},
+    "B.Tech": {"exam": "JEE Main", "ref": "https://jeemain.nta.nic.in/"},
+    "BE": {"exam": "JEE Main", "ref": "https://jeemain.nta.nic.in/"},
+    "MBBS": {"exam": "NEET-UG", "ref": "https://neet.nta.nic.in/"},
+    "BDS": {"exam": "NEET-UG", "ref": "https://neet.nta.nic.in/"},
+    "B.Arch": {"exam": "JEE Main (Paper 2) / NATA (varies)", "ref": "https://jeemain.nta.nic.in/"},
+    "B.Sc. Nursing": {"exam": "University/State process", "ref": ""},
+}
+
+MOOC_BY_CAREER = {
+    "Data Analyst": [
+        {"title": "Python for Data Science", "platform": "NPTEL/SWAYAM", "ref": "https://onlinecourses.nptel.ac.in/"},
+        {"title": "Statistics for Data Analysis", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+    ],
+    "Software Developer": [
+        {"title": "Data Structures & Algorithms", "platform": "NPTEL", "ref": "https://onlinecourses.nptel.ac.in/"},
+        {"title": "Databases / SQL", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+    ],
+    "AI/ML Engineer": [
+        {"title": "Intro to Machine Learning", "platform": "NPTEL", "ref": "https://onlinecourses.nptel.ac.in/"},
+    ],
+    "Business Analyst": [
+        {"title": "Financial Accounting", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+        {"title": "Business Analytics", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+    ],
+    "Graphic Designer": [
+        {"title": "Design Basics / Visual Communication", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+    ],
+    "Doctor (MBBS)": [
+        {"title": "Human Physiology Basics", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+    ],
+    "Dentist (BDS)": [
+        {"title": "Oral Biology Foundations", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+    ],
+    "Nurse": [
+        {"title": "Foundations of Nursing", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+    ],
+    "Architect": [
+        {"title": "Architectural Graphics", "platform": "SWAYAM", "ref": "https://swayam.gov.in/"},
+    ],
+}
+
+def _split_list(cell: str):
+    if not isinstance(cell, str):
+        return []
+    return [c.strip() for c in cell.split(",") if c.strip()]
+
+def career_roadmap(career: str, location_pref: str = None, limit: int = 20) -> Dict:
+    degrees = CAREER_TO_DEGREES.get(career, [])
+    if not degrees:
+        return {"career": career, "message": "No mapping found", "colleges": [], "steps": []}
+
+    if os.path.exists(COLLEGES_CSV):
+        df = pd.read_csv(COLLEGES_CSV)
+    else:
+        df = pd.DataFrame(columns=["College","Location","Website","Courses","Skills"])
+    for c in ["College", "Location", "Website", "Courses", "Skills"]:
+        if c in df.columns:
+            df[c] = df[c].astype(str).str.strip()
+    df["CourseTokens"] = df["Courses"].apply(_split_list)
+    df["SkillTokens"] = df.get("Skills", pd.Series([""]*len(df))).apply(_split_list)
+
+    mask = df["CourseTokens"].apply(
+        lambda toks: any(any(d.lower() in t.lower() for d in degrees) for t in toks)
+    )
+    filtered = df[mask].copy()
+
+    if location_pref:
+        filtered["loc_boost"] = filtered["Location"].str.contains(location_pref, case=False, na=False).astype(int)
+    else:
+        filtered["loc_boost"] = 0
+
+    kw = [k.lower() for k in CAREER_KEYWORDS.get(career, [])]
+    def score_row(r):
+        toks = [t.lower() for t in r["CourseTokens"]]
+        base = sum(any(d.lower() in t for d in degrees) for t in toks)
+        skills = [s.lower() for s in r["SkillTokens"]]
+        hits = sum(any(k in s for s in skills) for k in kw)
+        return base + 0.5 * hits
+
+    filtered["score"] = filtered.apply(score_row, axis=1)
+    filtered = filtered.sort_values(["loc_boost", "score", "College"], ascending=[False, False, True])
+
+    show = [c for c in ["College", "Location", "Website", "Courses", "Skills"] if c in filtered.columns]
+    colleges = filtered[show].drop_duplicates().head(limit).to_dict(orient="records")
+
+    entrances = []
+    seen = set()
+    for d in degrees:
+        info = ENTRANCE_BY_DEGREE.get(d)
+        if info:
+            key = (info["exam"], info["ref"])
+            if key not in seen:
+                entrances.append(info)
+                seen.add(key)
+
+    steps = [
+        f"Match your 10+2 subjects to degree options for {career} and shortlist colleges offering {', '.join(degrees)}",
+        "Pick the admission route that applies to your shortlist (CUET‑UG/JEE Main/NEET‑UG or university process) and calendar deadlines",
+        "Apply to 5–8 colleges across difficulty tiers; prepare required documents and subject prerequisites",
+        "Enroll in 1 public MOOC per term aligned to core skills; build a small project or portfolio artifact each semester",
+        "Do a short internship or supervised project each summer; expand your portfolio or clinical/community experience",
+        "In final year, add a capstone aligned to the target role and prepare for placements or PG entrance"
+    ]
+
+    return {
+        "career": career,
+        "degrees": degrees,
+        "entrance": entrances,
+        "colleges": colleges,
+        "moocs": MOOC_BY_CAREER.get(career, []),
+        "steps": steps
+    }
 
 # ----------------------------- SESSION STATE -----------------------------
 if "login" not in st.session_state:
@@ -348,13 +496,29 @@ def home_page():
     # --- Other pages ---
     elif menu=="Quiz":
         quiz_page()
-    elif menu=="Your Paths":
+   elif menu=="Your Paths":
         st.title("📈 Your Career Paths")
         user_paths = st.session_state.user.get("your_paths","")
-        if user_paths:
-            st.write(user_paths)
-        else:
-            st.info("Take the quiz to generate your career paths!")
+        if user_paths: st.write(user_paths)
+        else: st.info("Take the quiz to generate your career paths!")
+
+        # ---------------- Career Roadmap UI ----------------
+        st.subheader("Career Roadmap")
+        selected_career = st.selectbox("Select a Career", options=list(CAREER_TO_DEGREES.keys()))
+        location_pref = st.text_input("Preferred Location (optional)")
+        if st.button("Show Roadmap"):
+            roadmap = career_roadmap(selected_career, location_pref)
+            st.markdown("**Relevant Degrees:**")
+            st.write(", ".join(roadmap["degrees"]))
+            st.markdown("**Entrance Exams:**")
+            for e in roadmap["entrance"]: st.write(f"- {e['exam']} ([Link]({e['ref']}))")
+            st.markdown("**Top Colleges:**")
+            for c in roadmap["colleges"]:
+                st.write(f"- [{c['College']}]({c['Website']}) | Location: {c['Location']} | Courses: {c.get('Courses','')} | Skills: {c.get('Skills','')}")
+            st.markdown("**Recommended MOOCs:**")
+            for m in roadmap["moocs"]: st.write(f"- [{m['title']}]({m['ref']}) on {m['platform']}")
+            st.markdown("**Suggested Steps:**")
+            for step in roadmap["steps"]: st.write(f"- {step}")
     elif menu=="Explore":
         st.title("🏫 College Recommendations")
         search = st.text_input("Search by Course or College")
