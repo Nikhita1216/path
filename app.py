@@ -252,7 +252,7 @@ def home_page():
                 st.success(f"“{s['quote']}”")
 
     # --- Notifications Page ---
-  elif menu=="Notifications":
+    elif menu=="Notifications":
     st.title("🔔 Notifications")
     st.markdown("Here you will find career news, tips, and updates tailored for you!")
 
