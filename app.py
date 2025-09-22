@@ -156,7 +156,7 @@ def login_page():
 
 # ----------------------------- HOME PAGE -----------------------------
 def home_page():
-    # Sidebar user section
+    # Ensure user exists
     if st.session_state.user is not None:
         avatar_path = st.session_state.user.get("avatar")
         if not avatar_path or not os.path.exists(avatar_path):
@@ -167,32 +167,10 @@ def home_page():
         st.sidebar.image(os.path.join(AVATAR_FOLDER, "avatar3.png"), width=80)
         st.sidebar.title("Welcome, Guest")
 
-    # Add Profile option to menu
     menu = st.sidebar.radio(
-        "📍 Menu", ["Home","Quiz","Your Paths","Explore","Notifications","Profile","About Us","Logout"]
+        "📍 Menu", ["Profile","Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"]
     )
-
-    # ---- Handle menu selection ----
-    if menu == "Home":
-        st.subheader("🏠 Home")
-        st.write("This is the home page of Career Compass.")
-
-    elif menu == "Quiz":
-        quiz_page()
-
-    elif menu == "Your Paths":
-        st.subheader("🌟 Your Paths")
-        st.write(st.session_state.user.get("your_paths", "No career paths yet."))
-
-    elif menu == "Explore":
-        st.subheader("🔎 Explore")
-        st.write("Explore more opportunities here...")
-
-    elif menu == "Notifications":
-        st.subheader("🔔 Notifications")
-        st.info("No new notifications right now.")
-
-    elif menu == "Profile":
+    if menu == "Profile":
         st.subheader("👤 Edit Profile")
         if st.session_state.user:
             user = st.session_state.user
@@ -225,19 +203,43 @@ def home_page():
                 })
                 save_user_data(st.session_state.user["email"], user)  # <-- update CSV
                 st.success("Profile updated successfully!")
+    elif menu=="Home":
+        st.title("🧭 Career Compass")
+        st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
+
+    elif menu=="Quiz":
+        quiz_page()
+
+    elif menu=="Your Paths":
+        st.title("📈 Your Career Paths")
+        user_paths = st.session_state.user.get("your_paths","")
+        if user_paths:
+            st.write(user_paths)
         else:
-            st.warning("You must be logged in to edit your profile.")
+            st.info("Take the quiz to generate your career paths!")
 
-    elif menu == "About Us":
-        st.subheader("ℹ️ About Us")
-        st.write("Career Compass helps you discover and build your career paths.")
+    elif menu=="Explore":
+        st.title("🏫 College Recommendations")
+        search = st.text_input("Search by Course or College")
+        df = colleges_df
+        if search:
+            df = df[df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)]
+        st.dataframe(df)
 
-    elif menu == "Logout":
+    elif menu=="Notifications":
+        st.title("🔔 Notifications")
+        st.info("No new notifications yet.")
+
+    elif menu=="About Us":
+        st.title("ℹ️ About Us")
+        st.write("Career Compass is your personal career guidance tool built for SIH.")
+        st.write("It helps students in J&K explore careers, colleges, and roadmaps.")
+
+    elif menu=="Logout":
         st.session_state.login = False
         st.session_state.user = None
         st.session_state.quiz_answers = []
         st.success("Logged out successfully.")
-
 
 # ----------------------------- QUIZ PAGE -----------------------------
 def quiz_page():
