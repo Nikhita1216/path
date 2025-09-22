@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-from PIL import Image
 
 # ----------------------------- CONFIG -----------------------------
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
@@ -11,7 +10,6 @@ USERS_CSV = "users.csv"
 COLLEGES_CSV = "jk_colleges.csv"
 AVATAR_FOLDER = "images"
 QUIZ_FILE = "career_questions.json"
-COMPASS_GIF = "compass.gif"
 
 # ----------------------------- SESSION STATE -----------------------------
 if "login" not in st.session_state:
@@ -58,7 +56,6 @@ def load_quiz():
         with open(QUIZ_FILE,"r") as f:
             return json.load(f)
     else:
-        # placeholder quiz if file missing
         return {"main": []}
 
 users_df = load_users()
@@ -74,17 +71,18 @@ def login(email,password):
             return row.to_dict()
     return None
 
-def signup(email, password, name, age, gender, city, state, education, avatar_file=None):
+def signup(email, password, name, age, gender, city, state, education):
     df = load_users()
     if email in df["email"].values:
         return False
-    if avatar_file is None:
-        if gender=="Male":
-            avatar_file = os.path.join(AVATAR_FOLDER,"avatar2.png")
-        elif gender=="Female":
-            avatar_file = os.path.join(AVATAR_FOLDER,"avatar1.png")
-        else:
-            avatar_file = os.path.join(AVATAR_FOLDER,"avatar3.png")
+    # Default avatar based on gender
+    if gender=="Male":
+        avatar_file = os.path.join(AVATAR_FOLDER,"avatar2.png")
+    elif gender=="Female":
+        avatar_file = os.path.join(AVATAR_FOLDER,"avatar1.png")
+    else:
+        avatar_file = os.path.join(AVATAR_FOLDER,"avatar3.png")
+
     new_row = {
         "email": email,
         "password": password,
@@ -94,6 +92,7 @@ def signup(email, password, name, age, gender, city, state, education, avatar_fi
         "city": city,
         "state": state,
         "education": education,
+        "avatar": avatar_file,
         "your_paths": ""
     }
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -119,7 +118,6 @@ def recommend(scores):
 
 # ----------------------------- LOGIN / SIGNUP PAGE -----------------------------
 def login_page():
-    st.image(COMPASS_GIF, width=120)
     st.title("🔐 Login to Career Compass")
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
@@ -142,12 +140,6 @@ def login_page():
         name = st.text_input("Full Name", key="signup_name")
         age = st.number_input("Age", min_value=10, max_value=100, step=1, key="signup_age")
         gender = st.selectbox("Gender", ["Select","Male","Female","Other"], key="signup_gender")
-
-        chosen_avatar = None
-        if gender != "Select":
-            avatars = [os.path.join(AVATAR_FOLDER,f) for f in os.listdir(AVATAR_FOLDER) if f.endswith(".png")]
-            
-
         city = st.text_input("City", key="signup_city")
         state = st.text_input("State", key="signup_state")
         education = st.text_input("Education Qualification", key="signup_edu")
@@ -156,7 +148,7 @@ def login_page():
             if gender=="Select":
                 st.error("Please select a gender first!")
             else:
-                success = signup(email,password,name,age,gender,city,state,education,chosen_avatar)
+                success = signup(email,password,name,age,gender,city,state,education)
                 if success:
                     st.success("Signup successful! Please login.")
                 else:
@@ -165,18 +157,16 @@ def login_page():
 # ----------------------------- HOME PAGE -----------------------------
 def home_page():
     avatar_path = st.session_state.user.get("avatar", os.path.join(AVATAR_FOLDER,"avatar3.png"))
-          if os.path.exists(avatar_path):
-             st.sidebar.image(avatar_path, width=80)
-        else:
-    # fallback avatar
-             st.sidebar.image(os.path.join(AVATAR_FOLDER,"avatar3.png"), width=80)
-
+    if os.path.exists(avatar_path):
+        st.sidebar.image(avatar_path, width=80)
+    else:
+        st.sidebar.image(os.path.join(AVATAR_FOLDER,"avatar3.png"), width=80)
+    
     st.sidebar.title(f"Welcome, {st.session_state.user['name']}")
     menu = st.sidebar.radio("📍 Navigate", ["Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"])
 
     if menu=="Home":
         st.title("🎯 Career Compass")
-        st.image(COMPASS_GIF, width=200)
         st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
 
     elif menu=="Quiz":
@@ -223,7 +213,6 @@ def quiz_page():
             st.write(f"**Q{i+1}: {q['question']}**")
             option_texts = [opt["text"] for opt in q["options"].values()]
             ans_idx = st.radio("Choose answer", option_texts, key=f"main_{i}")
-            # Map selected text back to option key (a, b, c, ...)
             ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
             answers.append(ans_key)
 
@@ -233,31 +222,12 @@ def quiz_page():
             major, minor, backup = recommend(main_scores)
             st.success(f"Major: {major}, Minor: {minor}, Backup: {backup}")
 
-            # Sub-quiz for major stream if exists
-            if major in quiz_data.get("sub", {}):
-                st.subheader(f"🧩 Specialization Quiz: {major}")
-                sub_answers = []
-                with st.form("sub_quiz_form"):
-                    for j, q_key in enumerate(sorted(quiz_data["sub"][major].keys())):
-                        q = quiz_data["sub"][major][q_key]
-                        st.write(f"**Q{j+1}: {q['question']}**")
-                        option_texts = [opt["text"] for opt in q["options"].values()]
-                        ans_idx = st.radio("Choose answer", option_texts, key=f"sub_{j}")
-                        ans_key = [k for k, v in q["options"].items() if v["text"] == ans_idx][0]
-                        sub_answers.append(ans_key)
-                    sub_submitted = st.form_submit_button("Submit Specialization Quiz")
-                    if sub_submitted:
-                        sub_scores = calculate_scores(quiz_data["sub"][major], sub_answers)
-                        sub_major, sub_minor, sub_backup = recommend(sub_scores)
-                        st.success(f"Specialization Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}")
-
-                        # Save both main and sub quiz results
-                        df = load_users()
-                        idx = df.index[df["email"]==st.session_state.user["email"]][0]
-                        df.at[idx,"your_paths"] = (f"Major: {major}, Minor: {minor}, Backup: {backup} | "
-                                                   f"Specialization Major: {sub_major}, Minor: {sub_minor}, Backup: {sub_backup}")
-                        save_users(df)
-                        st.session_state.user = df.iloc[idx].to_dict()
+            # Save results to user
+            df = load_users()
+            idx = df.index[df["email"]==st.session_state.user["email"]][0]
+            df.at[idx,"your_paths"] = f"Major: {major}, Minor: {minor}, Backup: {backup}"
+            save_users(df)
+            st.session_state.user = df.iloc[idx].to_dict()
 
 # ----------------------------- ROUTER -----------------------------
 if "page" not in st.session_state:
