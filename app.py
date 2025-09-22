@@ -13,7 +13,7 @@ USERS_CSV = "users.csv"
 COLLEGES_CSV = "jk_colleges.csv"
 AVATAR_FOLDER = "images"
 QUIZ_FILE = "career_questions.json"
-NEWS_API_KEY = '1544f28739f54713873b32e7687dac2d'
+API_KEY = '1544f28739f54713873b32e7687dac2d'
 NEWS_BASE_URL = 'https://newsapi.org/v2/everything'
 
 # ----------------------------- SESSION STATE -----------------------------
