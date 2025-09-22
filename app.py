@@ -3,7 +3,6 @@ import pandas as pd
 import json
 import os
 from PIL import Image
-import graphviz
 
 # ----------------------------- CONFIG -----------------------------
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
@@ -12,12 +11,15 @@ USERS_CSV = "users.csv"
 COLLEGES_CSV = "jk_colleges.csv"
 AVATAR_FOLDER = "images"
 QUIZ_FILE = "career_questions.json"
+COMPASS_GIF = "compass.gif"
 
 # ----------------------------- SESSION STATE -----------------------------
 if "login" not in st.session_state:
     st.session_state.login = False
 if "user" not in st.session_state:
     st.session_state.user = None
+if "quiz_answers" not in st.session_state:
+    st.session_state.quiz_answers = []
 if "temp_signup" not in st.session_state:
     st.session_state.temp_signup = {}
 
@@ -52,14 +54,18 @@ def load_colleges():
         return df
 
 def load_quiz():
-    with open(QUIZ_FILE,"r") as f:
-        return json.load(f)
+    if os.path.exists(QUIZ_FILE):
+        with open(QUIZ_FILE,"r") as f:
+            return json.load(f)
+    else:
+        # placeholder quiz if file missing
+        return {"main": []}
 
 users_df = load_users()
 colleges_df = load_colleges()
 quiz_data = load_quiz()
 
-# ----------------------------- AUTH -----------------------------
+# ----------------------------- AUTH FUNCTIONS -----------------------------
 def login(email,password):
     df = load_users()
     if email in df["email"].values:
@@ -73,7 +79,6 @@ def signup(email, password, name, age, gender, city, state, education, avatar_fi
     if email in df["email"].values:
         return False
     if avatar_file is None:
-        # assign avatar based on gender
         if gender=="Male":
             avatar_file = os.path.join(AVATAR_FOLDER,"avatar2.png")
         elif gender=="Female":
@@ -96,7 +101,7 @@ def signup(email, password, name, age, gender, city, state, education, avatar_fi
     save_users(df)
     return True
 
-# ----------------------------- QUIZ LOGIC -----------------------------
+# ----------------------------- QUIZ FUNCTIONS -----------------------------
 def calculate_scores(questions, answers):
     scores = {}
     for q, ans in zip(questions, answers):
@@ -114,6 +119,7 @@ def recommend(scores):
 
 # ----------------------------- LOGIN / SIGNUP PAGE -----------------------------
 def login_page():
+    st.image(COMPASS_GIF, width=120)
     st.title("🔐 Login to Career Compass")
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
@@ -125,6 +131,7 @@ def login_page():
             if user:
                 st.session_state.login=True
                 st.session_state.user=user
+                st.session_state.page="home"
                 st.success(f"Welcome {user['name']}!")
             else:
                 st.error("Invalid credentials")
@@ -135,17 +142,16 @@ def login_page():
         name = st.text_input("Full Name", key="signup_name")
         age = st.number_input("Age", min_value=10, max_value=100, step=1, key="signup_age")
         gender = st.selectbox("Gender", ["Select","Male","Female","Other"], key="signup_gender")
-        
-        # Show avatar selection only after gender is chosen
+
         chosen_avatar = None
         if gender != "Select":
-            avatars = [os.path.join(AVATAR_FOLDER, f) for f in os.listdir(AVATAR_FOLDER) if f.endswith(".png")]
+            avatars = [os.path.join(AVATAR_FOLDER,f) for f in os.listdir(AVATAR_FOLDER) if f.endswith(".png")]
             chosen_avatar = st.radio("Choose an avatar", avatars, format_func=lambda x: os.path.basename(x))
-        
+
         city = st.text_input("City", key="signup_city")
         state = st.text_input("State", key="signup_state")
         education = st.text_input("Education Qualification", key="signup_edu")
-        
+
         if st.button("Sign Up"):
             if gender=="Select":
                 st.error("Please select a gender first!")
@@ -156,48 +162,78 @@ def login_page():
                 else:
                     st.error("Email already exists.")
 
-# ----------------------------- MAIN -----------------------------
-if not st.session_state.login:
-    login_page()
-else:
-    menu = st.sidebar.selectbox("Menu", ["Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"])
+# ----------------------------- HOME PAGE -----------------------------
+def home_page():
+    st.sidebar.image(st.session_state.user["avatar"], width=80)
+    st.sidebar.title(f"Welcome, {st.session_state.user['name']}")
+    menu = st.sidebar.radio("📍 Navigate", ["Home","Quiz","Your Paths","Explore","Notifications","About Us","Logout"])
 
     if menu=="Home":
         st.title("🎯 Career Compass")
-        st.success(f"Logged in as {st.session_state.user['name']} ({st.session_state.user['education']})")
-        st.image(st.session_state.user['avatar'], width=120)
+        st.image(COMPASS_GIF, width=200)
+        st.subheader("Your personalized guide to career paths, colleges, and opportunities.")
 
     elif menu=="Quiz":
-        st.title("📝 Career Quiz")
-        answers = []
-        with st.form("quiz_form"):
-            for i,q in enumerate(quiz_data["main"]):
-                st.write(f"**Q{i+1}: {q['q']}**")
-                ans = st.radio("Choose answer", [opt["text"] for opt in q["options"].values()], key=f"main_{i}")
-                answers.append(ans)
-            submitted = st.form_submit_button("Submit Quiz")
-            if submitted:
-                main_scores = calculate_scores(quiz_data["main"],answers)
-                major, minor, backup = recommend(main_scores)
-                st.success(f"Major: {major}, Minor: {minor}, Backup: {backup}")
+        quiz_page()
 
     elif menu=="Your Paths":
         st.title("📈 Your Career Paths")
-        st.write(st.session_state.user.get("your_paths","No paths saved yet."))
+        user_paths = st.session_state.user.get("your_paths","")
+        if user_paths:
+            st.write(user_paths)
+        else:
+            st.info("Take the quiz to generate your career paths!")
 
     elif menu=="Explore":
         st.title("🏫 College Recommendations")
-        st.dataframe(colleges_df)
+        search = st.text_input("Search by Course or College")
+        df = colleges_df
+        if search:
+            df = df[df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)]
+        st.dataframe(df)
 
     elif menu=="Notifications":
         st.title("🔔 Notifications")
-        st.info("No new notifications.")
+        st.info("No new notifications yet.")
 
     elif menu=="About Us":
         st.title("ℹ️ About Us")
-        st.write("This app helps students discover their career paths and recommended colleges in J&K.")
+        st.write("Career Compass is your personal career guidance tool built for SIH.")
+        st.write("It helps students in J&K explore careers, colleges, and roadmaps.")
 
     elif menu=="Logout":
         st.session_state.login=False
         st.session_state.user=None
-        st.success("Logged out successfully.")
+        st.session_state.quiz_answers=[]
+        st.experimental_rerun()
+
+# ----------------------------- QUIZ PAGE -----------------------------
+def quiz_page():
+    st.header("📝 Career Quiz")
+    answers=[]
+    with st.form("quiz_form"):
+        for i,q in enumerate(quiz_data["main"]):
+            st.write(f"**Q{i+1}: {q['q']}**")
+            ans = st.radio("Choose answer", [opt["text"] for opt in q["options"].values()], key=f"main_{i}")
+            answers.append(ans)
+        submitted = st.form_submit_button("Submit Quiz")
+        if submitted:
+            main_scores = calculate_scores(quiz_data["main"],answers)
+            major, minor, backup = recommend(main_scores)
+            st.success(f"Major: {major}, Minor: {minor}, Backup: {backup}")
+
+            # Save to user's paths
+            df = load_users()
+            idx = df.index[df["email"]==st.session_state.user["email"]][0]
+            df.at[idx,"your_paths"] = f"Major: {major}, Minor: {minor}, Backup: {backup}"
+            save_users(df)
+            st.session_state.user = df.iloc[idx].to_dict()
+
+# ----------------------------- ROUTER -----------------------------
+if "page" not in st.session_state:
+    st.session_state.page = "login"
+
+if st.session_state.page=="login":
+    login_page()
+else:
+    home_page()
