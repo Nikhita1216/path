@@ -294,9 +294,9 @@ def home_page():
                   except Exception as e:
                       st.error(f"Error fetching news: {e}")
 
-              else:
+               else:
                   st.info("Your quiz results are incomplete. Take the quiz to get personalized news!")
-          else:
+           else:
               st.info("Take the quiz to get news tailored to your career interests!")
 
     # --- Other pages ---
