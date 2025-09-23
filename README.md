@@ -43,19 +43,6 @@ flowchart TD
 
 ---
 
-## 📂 Project Structure
-
-
-Career-Compass/
-│── images/                 # Avatar and static images
-│── users.csv               # User data storage
-│── jk_colleges.csv         # College dataset
-│── career_questions.json   # Quiz data
-│── app.py                  # Main Streamlit application
-│── README.md               # Project documentation
-
-
----
 
 ## 🎯 Problem Solved
 
