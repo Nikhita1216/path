@@ -500,11 +500,10 @@ def home_page():
   
     elif menu=="Your Paths":
         st.title("📈 Your Career Paths")
-
-user_paths = st.session_state.user.get("your_paths", "")
+        user_paths = st.session_state.user.get("your_paths", "")
 
 # Map streams to careers
-STREAM_TO_CAREERS = {
+        STREAM_TO_CAREERS = {
     "Engineering": ["Software Developer", "AI/ML Engineer", "Data Analyst", "Architect"],
     "Science": ["Data Analyst", "AI/ML Engineer", "Research Scientist", "Lab Technician"],
     "Medical": ["Doctor (MBBS)", "Dentist (BDS)", "Nurse"],
@@ -512,50 +511,34 @@ STREAM_TO_CAREERS = {
     "Commerce": ["Business Analyst", "Financial Analyst", "Accountant", "Entrepreneur"]
 }
 
-if user_paths:
-    st.subheader("🎯 Recommended Careers Based on Your Quiz Results")
+         if user_paths:
+             st.subheader("🎯 Recommended Careers Based on Your Quiz Results")
 
     # Extract streams from quiz results
-    streams = []
-    for segment in user_paths.split("|"):
-        for item in segment.split(","):
-            if ":" in item:
-                value = item.split(":")[1].strip()
-                if value != "None":
-                    streams.append(value)
+             streams = []
+             for segment in user_paths.split("|"):
+                 for item in segment.split(","):
+                     if ":" in item:
+                         value = item.split(":")[1].strip()
+                         if value != "None":
+                             streams.append(value)
 
     # Get careers based on streams
-    recommended_careers = set()
-    for s in streams:
-        recommended_careers.update(STREAM_TO_CAREERS.get(s, []))
+             recommended_careers = set()
+             for s in streams:
+                 recommended_careers.update(STREAM_TO_CAREERS.get(s, []))
 
-    if recommended_careers:
-        for career in sorted(recommended_careers):
-            with st.expander(f"🔹 {career}"):
-                roadmap = career_roadmap(career)
-                st.markdown(f"**Relevant Degrees:** {', '.join(roadmap['degrees'])}")
-                st.markdown("**Entrance Exams:**")
-                for e in roadmap["entrance"]:
-                    st.write(f"- {e['exam']} ([Link]({e['ref']}))")
-                st.markdown("**Top Colleges:**")
-                for c in roadmap["colleges"]:
-                    st.write(f"- [{c['College']}]({c['Website']}) | Location: {c['Location']} | Courses: {c.get('Courses','')} | Skills: {c.get('Skills','')}")
-                st.markdown("**Recommended MOOCs:**")
-                for m in roadmap["moocs"]:
-                    st.write(f"- [{m['title']}]({m['ref']}) on {m['platform']}")
-                st.markdown("**Suggested Steps:**")
-                for step in roadmap["steps"]:
-                    st.write(f"- {step}")
-    else:
-        st.info("⚠ No matching careers found. Retake the quiz to get personalized recommendations.")
-else:
-    st.info("Take the quiz to generate your career paths!")
+             if recommended_careers:
+                 for career in sorted(recommended_careers):
+                     with st.expander(f"🔹 {career}"):
+                         roadmap = career_roadmap(career)
+                        
+             else:
+                 st.info("⚠ No matching careers found. Retake the quiz to get personalized recommendations.")
+         else:
+             st.info("Take the quiz to generate your career paths!")
 
         
-        
-       
-
-
         # ---------------- Career Roadmap UI ----------------
         st.subheader("Career Roadmap")
         selected_career = st.selectbox("Select a Career", options=list(CAREER_TO_DEGREES.keys()))
